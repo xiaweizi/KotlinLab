@@ -21,3 +21,8 @@ dist
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code & MCP tools
+.claude
+.playwright-mcp
+.spec-workflow
