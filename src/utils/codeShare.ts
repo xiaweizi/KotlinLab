@@ -53,7 +53,14 @@ export function decodeCode(encoded: string): string {
 export function generateShareUrl(code: string, baseUrl: string = window.location.origin): string {
   const encoded = encodeCode(code)
   if (!encoded) return baseUrl
-  return `${baseUrl}/?code=${encoded}`
+
+  // 兼容部署在子路径的场景（Vite BASE_URL 默认为 "/"）
+  const basePath = import.meta.env.BASE_URL
+  const base = new URL(basePath, baseUrl)
+
+  const url = new URL('editor', base)
+  url.searchParams.set('code', encoded)
+  return url.toString()
 }
 
 /**

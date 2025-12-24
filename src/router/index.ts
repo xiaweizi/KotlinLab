@@ -10,7 +10,13 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'home',
-    redirect: '/learn'
+    redirect: (to) => {
+      const code = to.query.code
+      if (typeof code === 'string' && code.trim().length > 0) {
+        return { path: '/editor', query: to.query }
+      }
+      return '/learn'
+    }
   },
   {
     path: '/learn',
