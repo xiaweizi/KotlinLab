@@ -52,6 +52,10 @@
               <span class="btn-icon">🗑</span>
               清空
             </button>
+            <button @click="shareCode" class="btn btn-share" :disabled="!kotlinCode.trim()" :class="{ copied: shareLinkCopied }">
+              <span class="btn-icon">{{ shareLinkCopied ? '✓' : '🔗' }}</span>
+              {{ shareLinkCopied ? '已复制' : '分享' }}
+            </button>
           </div>
         </div>
 
@@ -144,10 +148,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import MonacoEditor from '@/components/CodeEditor/MonacoEditor.vue'
 import { useCompiler } from '@/composables/useCompiler'
 import { useTheme } from '@/composables/useTheme'
+import { generateShareUrl, getSharedCode, clearCodeFromUrl } from '@/utils/codeShare'
 
 // 默认 Kotlin 示例代码
 const defaultKotlinCode = `fun main() {
@@ -175,9 +180,23 @@ data class Person(val name: String, val age: Int) {
 const kotlinCode = ref(defaultKotlinCode)
 const consoleOutput = ref('点击「编译」按钮运行 Kotlin 代码...')
 
+// 分享相关状态
+const shareLinkCopied = ref(false)
+
 // 使用 composables
 const { isDark, toggleTheme } = useTheme()
 const { isCompiling, isExecuting, compileResult, executionResult, hasErrors, compile, clearResults } = useCompiler() as any
+
+// 页面加载时检查是否有分享的代码
+onMounted(() => {
+  const sharedCode = getSharedCode()
+  if (sharedCode) {
+    kotlinCode.value = sharedCode
+    consoleOutput.value = '已加载分享的代码，点击「编译」运行...'
+    // 清除 URL 中的 code 参数
+    clearCodeFromUrl()
+  }
+})
 
 // 计算属性
 const jsOutput = computed({
@@ -251,6 +270,31 @@ async function copyToClipboard(text: string) {
     }, 2000)
   } catch (err) {
     consoleOutput.value = '复制失败: ' + (err as Error).message
+  }
+}
+
+/**
+ * 生成并复制分享链接
+ */
+async function shareCode() {
+  if (!kotlinCode.value.trim()) {
+    consoleOutput.value = '没有可分享的代码'
+    return
+  }
+
+  try {
+    const shareUrl = generateShareUrl(kotlinCode.value)
+    await navigator.clipboard.writeText(shareUrl)
+    shareLinkCopied.value = true
+    consoleOutput.value = '✓ 分享链接已复制到剪贴板！'
+    setTimeout(() => {
+      shareLinkCopied.value = false
+      if (consoleOutput.value === '✓ 分享链接已复制到剪贴板！') {
+        consoleOutput.value = '点击「编译」按钮运行 Kotlin 代码...'
+      }
+    }, 3000)
+  } catch (err) {
+    consoleOutput.value = '分享失败: ' + (err as Error).message
   }
 }
 </script>
@@ -472,6 +516,19 @@ async function copyToClipboard(text: string) {
 
   &:not(:disabled):hover {
     background: var(--border-color);
+  }
+}
+
+.btn-share {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+
+  &.copied {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  &:not(:disabled):hover {
+    opacity: 0.9;
   }
 }
 

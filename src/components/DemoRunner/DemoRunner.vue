@@ -247,7 +247,7 @@ const markCompleted = () => {
 }
 
 // 加载练习题代码
-const loadExerciseCode = (code: string, title: string) => {
+const loadExerciseCode = (code: string, _title: string) => {
   // 保存当前 Demo 代码
   originalDemoCode.value = currentCode.value
   // 加载练习题代码
