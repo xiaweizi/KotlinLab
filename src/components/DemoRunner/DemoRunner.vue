@@ -8,7 +8,7 @@
           <span v-else>🎯 Demo {{ currentDemoIndex + 1 }}/{{ demos.length }}</span>
         </h2>
         <h3 class="demo-title">
-          <span v-if="isExerciseMode">{{ exerciseTitle || '练习题' }}</span>
+          <span v-if="isExerciseMode">{{ currentExerciseTitle || '练习题' }}</span>
           <span v-else>{{ currentDemo?.title }}</span>
         </h3>
         <p class="demo-description">
@@ -100,7 +100,7 @@
           <pre class="output-text">{{ output }}</pre>
         </div>
         <!-- 完成标记 -->
-        <div class="output-footer">
+        <div v-if="!isExerciseMode" class="output-footer">
           <button
             v-if="!completedDemos.includes(currentDemo?.id)"
             @click="markCompleted"
@@ -135,11 +135,17 @@ const emit = defineEmits<{
   'demo-completed': [demoId: string]
 }>()
 
+type RunCodeResult =
+  | { success: true; output: string }
+  | { success: false; output: string; error: string }
+
 // 练习题模式
 const isExerciseMode = ref(false)
 
 // 暂存原始 Demo 代码（用于退出练习题模式恢复）
 const originalDemoCode = ref<string | null>(null)
+const currentExerciseTitle = ref<string>('')
+const currentExerciseId = ref<string>('')
 
 const { isDark } = useTheme()
 const { compile, isCompiling } = useCompiler() as any
@@ -166,27 +172,48 @@ watch(currentDemo, (demo) => {
   }
 }, { immediate: true })
 
-// 运行代码
-const runCode = async () => {
-  if (!currentCode.value.trim()) return
+function formatCompileErrors(errors: Array<{ line?: number; column?: number; message?: string }>): string {
+  if (!errors || errors.length === 0) return '编译失败（无详细错误信息）'
+  return `编译错误:\n${errors.map(e => `Line ${e.line ?? 0}:${e.column ?? 0} - ${e.message ?? ''}`.trim()).join('\n')}`
+}
+
+function normalizeOutput(text: string): string {
+  return text.replace(/\r\n/g, '\n')
+}
+
+// 执行当前代码并返回结果（供外部判题/验证使用）
+const runCurrentCode = async (): Promise<RunCodeResult> => {
+  if (!currentCode.value.trim()) {
+    output.value = '代码为空，无法运行。'
+    hasError.value = true
+    return { success: false, output: output.value, error: 'empty-code' }
+  }
 
   hasError.value = false
   const result = await compile(currentCode.value)
 
   if (result.success) {
     output.value = result.jsCode || '执行成功 (无输出)'
-    // 如果有预期输出，检查是否匹配
-    if (currentDemo.value?.expectedOutput) {
-      // 简单的字符串匹配
-      if (output.value.includes(currentDemo.value.expectedOutput.slice(0, 20))) {
-        // 自动标记完成
+    const normalizedOutput = normalizeOutput(output.value).trim()
+
+    if (!isExerciseMode.value && currentDemo.value?.expectedOutput) {
+      const expected = normalizeOutput(currentDemo.value.expectedOutput).trim()
+      if (normalizedOutput === expected) {
         markCompleted()
       }
     }
+
+    return { success: true, output: normalizedOutput }
   } else {
     hasError.value = true
-    output.value = `编译错误:\n${result.errors.map((e: any) => `Line ${e.line}:${e.column} - ${e.message}`).join('\n')}`
+    output.value = formatCompileErrors(result.errors || [])
+    return { success: false, output: output.value, error: 'compile-error' }
   }
+}
+
+// 运行代码（UI 按钮入口）
+const runCode = async () => {
+  await runCurrentCode()
 }
 
 // 重置代码
@@ -247,12 +274,14 @@ const markCompleted = () => {
 }
 
 // 加载练习题代码
-const loadExerciseCode = (code: string, _title: string) => {
+const loadExerciseCode = (code: string, title: string, exerciseId: string) => {
   // 保存当前 Demo 代码
   originalDemoCode.value = currentCode.value
   // 加载练习题代码
   currentCode.value = code
   isExerciseMode.value = true
+  currentExerciseTitle.value = title
+  currentExerciseId.value = exerciseId
   output.value = '练习题已加载，请完成后点击「运行代码」验证...'
   hasError.value = false
 }
@@ -264,14 +293,25 @@ const exitExerciseMode = () => {
     originalDemoCode.value = null
   }
   isExerciseMode.value = false
+  currentExerciseTitle.value = ''
+  currentExerciseId.value = ''
   output.value = '点击「运行代码」查看结果...'
   hasError.value = false
+}
+
+function getExerciseContext(): { isExerciseMode: boolean; exerciseId: string } {
+  return {
+    isExerciseMode: isExerciseMode.value,
+    exerciseId: currentExerciseId.value
+  }
 }
 
 // 暴露方法给父组件
 defineExpose({
   loadExerciseCode,
-  exitExerciseMode
+  exitExerciseMode,
+  runCurrentCode,
+  getExerciseContext
 })
 </script>
 
