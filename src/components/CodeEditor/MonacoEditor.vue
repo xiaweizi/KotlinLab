@@ -5,6 +5,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 
+type EditorMarker = {
+  severity: number
+  message: string
+  startLineNumber: number
+  startColumn: number
+  endLineNumber: number
+  endColumn: number
+}
+
 interface Props {
   modelValue: string
   language?: string
@@ -12,6 +21,7 @@ interface Props {
   readOnly?: boolean
   height?: string
   fontSize?: number
+  markers?: EditorMarker[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,6 +39,13 @@ const emit = defineEmits<{
 
 const editorContainer = ref<HTMLElement>()
 let editorInstance: any = null
+
+function applyMarkers(markers?: EditorMarker[]) {
+  const monaco = (window as any).monaco
+  const model = editorInstance?.getModel?.()
+  if (!monaco || !model) return
+  monaco.editor.setModelMarkers(model, 'kotlin-lab', markers ?? [])
+}
 
 // 从 CDN 加载 Monaco Editor
 function loadMonacoFromCDN(): Promise<void> {
@@ -98,6 +115,8 @@ onMounted(async () => {
       renderLineHighlight: 'all'
     })
 
+    applyMarkers(props.markers)
+
     // 监听内容变化
     editorInstance.onDidChangeModelContent(() => {
       const value = editorInstance?.getValue() || ''
@@ -122,6 +141,10 @@ watch(() => props.modelValue, (newValue) => {
     }
   }
 })
+
+watch(() => props.markers, (markers) => {
+  applyMarkers(markers)
+}, { deep: true })
 
 watch(() => props.theme, (newTheme) => {
   const monaco = (window as any).monaco

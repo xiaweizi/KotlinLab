@@ -21,6 +21,14 @@ export interface Demo {
 /**
  * 练习题结构
  */
+export interface ExerciseValidatorOptions {
+  ignoreCase?: boolean
+  trimLineEndings?: boolean
+  ignoreBlankLines?: boolean
+  normalizeSpaces?: boolean
+  ignoreAllWhitespace?: boolean
+}
+
 export interface Exercise {
   id: string
   title: string
@@ -29,6 +37,7 @@ export interface Exercise {
   hint?: string
   solution?: string
   validator?: string // 用于验证输出正则表达式
+  validatorOptions?: ExerciseValidatorOptions
 }
 
 /**

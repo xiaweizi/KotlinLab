@@ -72,6 +72,7 @@
             v-model="currentCode"
             :language="'kotlin'"
             :theme="isDark ? 'vs-dark' : 'vs'"
+            :markers="editorMarkers"
             :height="'100%'"
           />
         </div>
@@ -97,12 +98,31 @@
               {{ validationBadge.text }}
             </span>
           </div>
-          <button @click="clearOutput" class="action-btn" title="清空输出">
-            🗑 清空
-          </button>
+          <div class="panel-actions">
+            <button
+              v-if="isExerciseMode && currentExerciseSolution"
+              @click="toggleSolution"
+              class="action-btn"
+              :title="showSolution ? '隐藏参考答案' : '显示参考答案'"
+            >
+              {{ showSolution ? '🙈 隐藏答案' : '👁️ 参考答案' }}
+            </button>
+            <button @click="clearOutput" class="action-btn" title="清空输出">
+              🗑 清空
+            </button>
+          </div>
         </div>
         <div class="output-wrapper" :class="{ 'has-error': hasError }">
           <pre class="output-text">{{ output }}</pre>
+        </div>
+        <div v-if="isExerciseMode && showSolution && currentExerciseSolution" class="solution-wrapper">
+          <div class="solution-header">
+            <span class="solution-title">参考答案</span>
+            <button @click="copySolution" class="action-btn" title="复制参考答案">
+              📋 复制答案
+            </button>
+          </div>
+          <pre class="solution-text">{{ currentExerciseSolution }}</pre>
         </div>
         <!-- 完成标记 -->
         <div v-if="!isExerciseMode" class="output-footer">
@@ -125,7 +145,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import MonacoEditor from '@/components/CodeEditor/MonacoEditor.vue'
 import { useCompiler } from '@/composables/useCompiler'
 import { useTheme } from '@/composables/useTheme'
-import type { Demo } from '@/data/curriculum'
+import type { Demo, ExerciseValidatorOptions } from '@/data/curriculum'
 
 interface Props {
   day: number
@@ -149,6 +169,15 @@ type ValidationBadge =
   | { type: 'fail'; text: string }
   | null
 
+type EditorMarker = {
+  severity: number
+  message: string
+  startLineNumber: number
+  startColumn: number
+  endLineNumber: number
+  endColumn: number
+}
+
 // 练习题模式
 const isExerciseMode = ref(false)
 
@@ -156,9 +185,11 @@ const isExerciseMode = ref(false)
 const originalDemoCode = ref<string | null>(null)
 const currentExerciseTitle = ref<string>('')
 const currentExerciseId = ref<string>('')
+const currentExerciseSolution = ref<string>('')
+const showSolution = ref(false)
 
 const { isDark } = useTheme()
-const { compile, isCompiling } = useCompiler() as any
+const { compile, isCompiling, getEditorMarkers } = useCompiler()
 
 // 当前 Demo 索引
 const currentDemoIndex = ref(0)
@@ -171,6 +202,7 @@ const output = ref('点击「运行代码」查看结果...')
 const hasError = ref(false)
 const validationBadge = ref<ValidationBadge>(null)
 const outputPanelRef = ref<HTMLElement | null>(null)
+const editorMarkers = ref<EditorMarker[]>([])
 
 // 获取当前 Demo
 const currentDemo = computed(() => props.demos[currentDemoIndex.value])
@@ -182,6 +214,9 @@ watch(currentDemo, (demo) => {
     output.value = '点击「运行代码」查看结果...'
     hasError.value = false
     validationBadge.value = null
+    editorMarkers.value = []
+    currentExerciseSolution.value = ''
+    showSolution.value = false
   }
 }, { immediate: true })
 
@@ -194,7 +229,37 @@ function normalizeOutput(text: string): string {
   return text.replace(/\r\n/g, '\n')
 }
 
-function parseValidator(validator: string): RegExp | null {
+function normalizeForValidation(text: string, options?: ExerciseValidatorOptions): string {
+  const resolved: Required<ExerciseValidatorOptions> = {
+    ignoreCase: options?.ignoreCase ?? false,
+    trimLineEndings: options?.trimLineEndings ?? true,
+    ignoreBlankLines: options?.ignoreBlankLines ?? false,
+    normalizeSpaces: options?.normalizeSpaces ?? false,
+    ignoreAllWhitespace: options?.ignoreAllWhitespace ?? false
+  }
+
+  let normalized = normalizeOutput(text)
+
+  if (resolved.trimLineEndings) {
+    normalized = normalized.split('\n').map(line => line.trimEnd()).join('\n')
+  }
+
+  if (resolved.ignoreBlankLines) {
+    normalized = normalized.split('\n').filter(line => line.trim().length > 0).join('\n')
+  }
+
+  if (resolved.normalizeSpaces) {
+    normalized = normalized.replace(/[ \t]+/g, ' ')
+  }
+
+  if (resolved.ignoreAllWhitespace) {
+    normalized = normalized.replace(/\s+/g, '')
+  }
+
+  return normalized.trim()
+}
+
+function parseValidator(validator: string, options?: ExerciseValidatorOptions): RegExp | null {
   const trimmed = validator.trim()
   if (!trimmed) return null
 
@@ -204,10 +269,15 @@ function parseValidator(validator: string): RegExp | null {
       if (lastSlash > 0) {
         const pattern = trimmed.slice(1, lastSlash)
         const flags = trimmed.slice(lastSlash + 1)
-        return new RegExp(pattern, flags)
+        const flagSet = new Set(flags.split(''))
+        flagSet.add('m')
+        flagSet.add('s')
+        if (options?.ignoreCase) flagSet.add('i')
+        flagSet.delete('g')
+        return new RegExp(pattern, Array.from(flagSet).join(''))
       }
     }
-    return new RegExp(trimmed, 'm')
+    return new RegExp(trimmed, `ms${options?.ignoreCase ? 'i' : ''}`)
   } catch {
     return null
   }
@@ -225,6 +295,24 @@ async function focusOutputPanel() {
   outputPanelRef.value?.focus({ preventScroll: true })
 }
 
+const toggleSolution = () => {
+  if (!currentExerciseSolution.value) return
+  if (!showSolution.value) {
+    const ok = confirm('确定要查看参考答案吗？建议先自己尝试再查看。')
+    if (!ok) return
+  }
+  showSolution.value = !showSolution.value
+}
+
+const copySolution = async () => {
+  if (!currentExerciseSolution.value) return
+  try {
+    await navigator.clipboard.writeText(currentExerciseSolution.value)
+  } catch {
+    // 忽略复制失败（例如非安全上下文）
+  }
+}
+
 // 执行当前代码并返回结果（供外部判题/验证使用）
 const runCurrentCode = async (): Promise<RunCodeResult> => {
   if (!currentCode.value.trim()) {
@@ -234,6 +322,7 @@ const runCurrentCode = async (): Promise<RunCodeResult> => {
 
   hasError.value = false
   validationBadge.value = null
+  editorMarkers.value = []
   const result = await compile(currentCode.value)
 
   if (result.success) {
@@ -251,12 +340,13 @@ const runCurrentCode = async (): Promise<RunCodeResult> => {
   } else {
     hasError.value = true
     output.value = formatCompileErrors(result.errors || [])
+    editorMarkers.value = getEditorMarkers(result.errors || []) as EditorMarker[]
     return { success: false, output: output.value, error: 'compile-error' }
   }
 }
 
 // 验证练习题：运行 + 基于 validator 判题，并将结果展示在输出面板
-const validateExercise = async (validator: string): Promise<{ passed: boolean }> => {
+const validateExercise = async (validator: string, options?: ExerciseValidatorOptions): Promise<{ passed: boolean }> => {
   if (!validator.trim()) {
     setOutputMessage('该练习未配置 validator（输出正则），无法自动判题。', {
       isError: false,
@@ -265,7 +355,7 @@ const validateExercise = async (validator: string): Promise<{ passed: boolean }>
     return { passed: false }
   }
 
-  const regex = parseValidator(validator)
+  const regex = parseValidator(validator, options)
   if (!regex) {
     setOutputMessage(`validator 不是合法的正则表达式：\n${validator}`, {
       isError: true,
@@ -280,7 +370,7 @@ const validateExercise = async (validator: string): Promise<{ passed: boolean }>
     return { passed: false }
   }
 
-  const normalizedOutput = normalizeOutput(result.output).trim()
+  const normalizedOutput = normalizeForValidation(result.output, options)
   const passed = regex.test(normalizedOutput)
 
   if (!passed) {
@@ -357,7 +447,12 @@ const markCompleted = () => {
 }
 
 // 加载练习题代码
-const loadExerciseCode = (code: string, title: string, exerciseId: string) => {
+const loadExerciseCode = (
+  code: string,
+  title: string,
+  exerciseId: string,
+  meta?: { solution?: string }
+) => {
   // 保存当前 Demo 代码
   originalDemoCode.value = currentCode.value
   // 加载练习题代码
@@ -365,6 +460,9 @@ const loadExerciseCode = (code: string, title: string, exerciseId: string) => {
   isExerciseMode.value = true
   currentExerciseTitle.value = title
   currentExerciseId.value = exerciseId
+  currentExerciseSolution.value = meta?.solution ?? ''
+  showSolution.value = false
+  editorMarkers.value = []
   setOutputMessage('练习题已加载，请完成后点击「运行代码」验证...', { isError: false, badge: null })
 }
 
@@ -377,6 +475,9 @@ const exitExerciseMode = () => {
   isExerciseMode.value = false
   currentExerciseTitle.value = ''
   currentExerciseId.value = ''
+  currentExerciseSolution.value = ''
+  showSolution.value = false
+  editorMarkers.value = []
   setOutputMessage('点击「运行代码」查看结果...', { isError: false, badge: null })
 }
 
@@ -569,11 +670,6 @@ defineExpose({
   }
 }
 
-.panel-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
 .action-btn {
   padding: 0.375rem 0.625rem;
   border-radius: 6px;
@@ -598,6 +694,11 @@ defineExpose({
   &.exit-btn:hover {
     opacity: 0.9;
   }
+}
+
+.panel-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .editor-wrapper {
@@ -667,6 +768,40 @@ defineExpose({
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
   font-size: 0.8125rem;
   line-height: 1.6;
+}
+
+.solution-wrapper {
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.solution-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.solution-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.solution-text {
+  margin: 0;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  max-height: 40vh;
+  overflow: auto;
 }
 
 .output-footer {

@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import { useProgress } from '@/composables/useProgress'
@@ -123,7 +123,7 @@ import type { Exercise } from '@/data/curriculum'
 const route = useRoute()
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
-const { getDayProgress, markDemoCompleted, markExerciseCompleted, isExerciseCompleted, isDayCompleted, markDayCompleted } = useProgress()
+const { getDayProgress, markDemoCompleted, markExerciseCompleted, isExerciseCompleted, isDayCompleted, markDayCompleted, addDayStudyTime, updateLastAccessed } = useProgress()
 const { getDay } = useCurriculum()
 
 // 获取当前天数
@@ -142,6 +142,25 @@ const currentHint = ref('')
 // DemoRunner 组件引用
 const demoRunnerRef = ref<InstanceType<typeof DemoRunner> | null>(null)
 
+let sessionStartMs = performance.now()
+const finalizeDaySession = (targetDay: number) => {
+  if (!Number.isFinite(targetDay)) return
+  const minutes = Math.round((performance.now() - sessionStartMs) / 60000)
+  if (minutes > 0) {
+    addDayStudyTime(targetDay, minutes)
+  }
+}
+
+watch(day, (newDay, oldDay) => {
+  if (typeof oldDay === 'number' && Number.isFinite(oldDay)) {
+    finalizeDaySession(oldDay)
+  }
+  sessionStartMs = performance.now()
+  if (Number.isFinite(newDay)) {
+    updateLastAccessed(newDay)
+  }
+}, { immediate: true })
+
 // 切换练习题展开状态
 const toggleExercise = (exercise: Exercise) => {
   if (expandedExercise.value === exercise.id) {
@@ -155,7 +174,7 @@ const toggleExercise = (exercise: Exercise) => {
 const loadExercise = (exercise: Exercise) => {
   expandedExercise.value = exercise.id
   if (demoRunnerRef.value && exercise.template) {
-    demoRunnerRef.value.loadExerciseCode(exercise.template, exercise.title, exercise.id)
+    demoRunnerRef.value.loadExerciseCode(exercise.template, exercise.title, exercise.id, { solution: exercise.solution })
   }
 }
 
@@ -174,7 +193,7 @@ const checkExercise = async (exercise: Exercise) => {
   const context = demoRunnerRef.value.getExerciseContext()
   const shouldLoadExerciseTemplate = !context.isExerciseMode || context.exerciseId !== exercise.id
   if (shouldLoadExerciseTemplate && exercise.template) {
-    demoRunnerRef.value.loadExerciseCode(exercise.template, exercise.title, exercise.id)
+    demoRunnerRef.value.loadExerciseCode(exercise.template, exercise.title, exercise.id, { solution: exercise.solution })
   }
 
   if (!exercise.validator) {
@@ -185,7 +204,7 @@ const checkExercise = async (exercise: Exercise) => {
     return
   }
 
-  const { passed } = await demoRunnerRef.value.validateExercise(exercise.validator)
+  const { passed } = await demoRunnerRef.value.validateExercise(exercise.validator, exercise.validatorOptions)
   demoRunnerRef.value.focusOutputPanel()
   if (passed) {
     markExerciseCompleted(day.value, exercise.id)
@@ -201,6 +220,10 @@ onMounted(() => {
   if (!lessonData.value) {
     router.push('/learn')
   }
+})
+
+onBeforeUnmount(() => {
+  finalizeDaySession(day.value)
 })
 </script>
 

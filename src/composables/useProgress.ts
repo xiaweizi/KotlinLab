@@ -145,6 +145,15 @@ export function useProgress() {
     progress.value.lastStudyDate = new Date().toISOString()
   }
 
+  // 更新单日学习时间
+  const addDayStudyTime = (day: number, minutes: number) => {
+    if (minutes <= 0) return
+    const dayProgress = getDayProgress(day)
+    dayProgress.timeSpent += minutes
+    dayProgress.lastAccessed = new Date().toISOString()
+    addStudyTime(minutes)
+  }
+
   // 更新最后访问时间
   const updateLastAccessed = (day: number) => {
     const dayProgress = getDayProgress(day)
@@ -216,6 +225,7 @@ export function useProgress() {
     unmarkDayCompleted,
     isDayCompleted,
     addStudyTime,
+    addDayStudyTime,
     updateLastAccessed,
     resetProgress,
     exportProgress,

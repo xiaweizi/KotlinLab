@@ -65,6 +65,7 @@
             v-model="kotlinCode"
             :language="'kotlin'"
             :theme="isDark ? 'vs-dark' : 'vs'"
+            :markers="kotlinMarkers"
             :height="'100%'"
           />
         </div>
@@ -149,11 +150,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import MonacoEditor from '@/components/CodeEditor/MonacoEditor.vue'
 import SearchBox from '@/components/SearchBox/SearchBox.vue'
 import { useCompiler } from '@/composables/useCompiler'
 import { useTheme } from '@/composables/useTheme'
+import { useProgress } from '@/composables/useProgress'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { generateShareUrl, getSharedCode, clearCodeFromUrl } from '@/utils/codeShare'
 
@@ -188,7 +190,10 @@ const shareLinkCopied = ref(false)
 
 // 使用 composables
 const { isDark, toggleTheme } = useTheme()
-const { isCompiling, isExecuting, compileResult, executionResult, hasErrors, compile, clearResults } = useCompiler() as any
+const { isCompiling, isExecuting, compileResult, executionResult, hasErrors, compile, clearResults, getEditorMarkers } = useCompiler()
+const { addStudyTime } = useProgress()
+
+let sessionStartMs = performance.now()
 
 // 键盘快捷键配置
 useKeyboardShortcuts([
@@ -222,6 +227,7 @@ useKeyboardShortcuts([
 
 // 页面加载时检查是否有分享的代码
 onMounted(() => {
+  sessionStartMs = performance.now()
   const sharedCode = getSharedCode()
   if (sharedCode) {
     kotlinCode.value = sharedCode
@@ -231,10 +237,21 @@ onMounted(() => {
   }
 })
 
+onBeforeUnmount(() => {
+  const minutes = Math.round((performance.now() - sessionStartMs) / 60000)
+  if (minutes > 0) {
+    addStudyTime(minutes)
+  }
+})
+
 // 计算属性
 const jsOutput = computed({
   get: () => compileResult.value?.jsCode || '',
   set: () => {}
+})
+
+const kotlinMarkers = computed(() => {
+  return getEditorMarkers(compileResult.value?.errors ?? [])
 })
 
 // 监听编译结果变化
@@ -244,7 +261,7 @@ watch(compileResult, (result) => {
       // API 直接返回执行后的输出
       consoleOutput.value = result.jsCode || '执行成功 (无输出)'
     } else if (result.errors.length > 0) {
-      consoleOutput.value = `编译错误:\n${result.errors.map((e: any) => `Line ${e.line}:${e.column} - ${e.message}`).join('\n')}`
+      consoleOutput.value = `编译错误:\n${result.errors.map(e => `Line ${e.line}:${e.column} - ${e.message}`).join('\n')}`
     }
   }
 })
@@ -261,7 +278,7 @@ async function handleCompile() {
     // API 直接返回执行后的输出
     consoleOutput.value = result.jsCode || '执行成功 (无输出)'
   } else {
-    consoleOutput.value = `编译错误:\n${result.errors.map((e: any) => `Line ${e.line}:${e.column} - ${e.message}`).join('\n')}`
+    consoleOutput.value = `编译错误:\n${result.errors.map(e => `Line ${e.line}:${e.column} - ${e.message}`).join('\n')}`
   }
 }
 
