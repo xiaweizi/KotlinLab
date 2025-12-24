@@ -38,7 +38,7 @@
               </div>
               <div class="stat-item">
                 <span class="stat-value">{{ stats.totalExercises }}</span>
-                <span class="stat-label">���完成练习</span>
+                <span class="stat-label">已完成练习</span>
               </div>
               <div class="stat-item">
                 <span class="stat-value">{{ formatTime(stats.totalStudyTime) }}</span>
