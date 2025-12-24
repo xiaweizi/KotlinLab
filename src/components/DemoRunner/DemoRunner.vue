@@ -3,9 +3,18 @@
     <!-- Demo 导航 -->
     <div class="demo-nav">
       <div class="nav-header">
-        <h2 class="nav-title">🎯 Demo {{ currentDemoIndex + 1 }}/{{ demos.length }}</h2>
-        <h3 class="demo-title">{{ currentDemo?.title }}</h3>
-        <p class="demo-description">{{ currentDemo?.description }}</p>
+        <h2 class="nav-title">
+          <span v-if="isExerciseMode">📝 练习题模式</span>
+          <span v-else>🎯 Demo {{ currentDemoIndex + 1 }}/{{ demos.length }}</span>
+        </h2>
+        <h3 class="demo-title">
+          <span v-if="isExerciseMode">{{ exerciseTitle || '练习题' }}</span>
+          <span v-else>{{ currentDemo?.title }}</span>
+        </h3>
+        <p class="demo-description">
+          <span v-if="isExerciseMode">完成练习后点击「运行代码」验证答案</span>
+          <span v-else>{{ currentDemo?.description }}</span>
+        </p>
       </div>
       <div class="nav-controls">
         <button
@@ -47,6 +56,9 @@
         <div class="panel-header">
           <span class="panel-title">Kotlin 代码</span>
           <div class="panel-actions">
+            <button v-if="isExerciseMode" @click="exitExerciseMode" class="action-btn exit-btn" title="退出练习题模式">
+              ← 返回 Demo
+            </button>
             <button @click="resetCode" class="action-btn" title="重置代码">
               🔁 重置
             </button>
@@ -114,12 +126,20 @@ interface Props {
   day: number
   demos: Demo[]
   completedDemos: string[]
+  exerciseCode?: string  // 练习题模板代码
+  exerciseTitle?: string // 练习题标题
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'demo-completed': [demoId: string]
 }>()
+
+// 练习题模式
+const isExerciseMode = ref(false)
+
+// 暂存原始 Demo 代码（用于退出练习题模式恢复）
+const originalDemoCode = ref<string | null>(null)
 
 const { isDark } = useTheme()
 const { compile, isCompiling } = useCompiler() as any
@@ -201,6 +221,7 @@ const clearOutput = () => {
 const previousDemo = () => {
   if (currentDemoIndex.value > 0) {
     currentDemoIndex.value--
+    exitExerciseMode()
   }
 }
 
@@ -208,12 +229,14 @@ const previousDemo = () => {
 const nextDemo = () => {
   if (currentDemoIndex.value < props.demos.length - 1) {
     currentDemoIndex.value++
+    exitExerciseMode()
   }
 }
 
 // 跳转到指定 Demo
 const goToDemo = (index: number) => {
   currentDemoIndex.value = index
+  exitExerciseMode()
 }
 
 // 标记完成
@@ -222,6 +245,34 @@ const markCompleted = () => {
     emit('demo-completed', currentDemo.value.id)
   }
 }
+
+// 加载练习题代码
+const loadExerciseCode = (code: string, title: string) => {
+  // 保存当前 Demo 代码
+  originalDemoCode.value = currentCode.value
+  // 加载练习题代码
+  currentCode.value = code
+  isExerciseMode.value = true
+  output.value = '练习题已加载，请完成后点击「运行代码」验证...'
+  hasError.value = false
+}
+
+// 退出练习题模式
+const exitExerciseMode = () => {
+  if (originalDemoCode.value) {
+    currentCode.value = originalDemoCode.value
+    originalDemoCode.value = null
+  }
+  isExerciseMode.value = false
+  output.value = '点击「运行代码」查看结果...'
+  hasError.value = false
+}
+
+// 暴露方法给父组件
+defineExpose({
+  loadExerciseCode,
+  exitExerciseMode
+})
 </script>
 
 <style scoped lang="scss">
@@ -381,9 +432,19 @@ const markCompleted = () => {
   cursor: pointer;
   transition: all 0.2s;
 
+  &.exit-btn {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+  }
+
   &:hover {
     background: var(--bg-primary);
     border-color: var(--accent-color);
+  }
+
+  &.exit-btn:hover {
+    opacity: 0.9;
   }
 }
 

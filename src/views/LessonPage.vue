@@ -12,7 +12,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <router-link to="/editor" class="icon-btn" title="打开完整编辑器">
+        <router-link to="/" class="icon-btn" title="打开完整编辑器">
           <span>💻</span>
         </router-link>
         <button @click="toggleTheme" class="icon-btn" :title="isDark ? '切换到亮色主题' : '切换到深色主题'">
@@ -83,6 +83,7 @@
       <!-- 右侧：Demo 运行器 -->
       <section class="lesson-content">
         <DemoRunner
+          ref="demoRunnerRef"
           :day="day"
           :demos="lessonData.demos"
           :completed-demos="getDayProgress(day)?.demosCompleted || []"
@@ -136,6 +137,9 @@ const expandedExercise = ref<string | null>(null)
 const showHintModal = ref(false)
 const currentHint = ref('')
 
+// DemoRunner 组件引用
+const demoRunnerRef = ref<InstanceType<typeof DemoRunner> | null>(null)
+
 // 切换练习题展开状态
 const toggleExercise = (exercise: Exercise) => {
   if (expandedExercise.value === exercise.id) {
@@ -147,9 +151,10 @@ const toggleExercise = (exercise: Exercise) => {
 
 // 将练习题加载到编辑器
 const loadExercise = (exercise: Exercise) => {
-  // 这里可以触发事件将模板代码加载到 DemoRunner
   expandedExercise.value = exercise.id
-  // TODO: 实现代码加载逻辑
+  if (demoRunnerRef.value && exercise.template) {
+    demoRunnerRef.value.loadExerciseCode(exercise.template, exercise.title)
+  }
 }
 
 // 显示提示
