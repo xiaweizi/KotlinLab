@@ -10,6 +10,7 @@
         <p class="app-subtitle">14天系统化学习 Kotlin 编程语言</p>
       </div>
       <div class="header-actions">
+        <SearchBox />
         <router-link to="/editor" class="icon-btn" title="打开编辑器">
           <span>💻</span>
         </router-link>
@@ -132,6 +133,7 @@ import { useTheme } from '@/composables/useTheme'
 import { useProgress } from '@/composables/useProgress'
 import { useCurriculum } from '@/composables/useCurriculum'
 import LessonCard from '@/components/LessonCard/LessonCard.vue'
+import SearchBox from '@/components/SearchBox/SearchBox.vue'
 
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()

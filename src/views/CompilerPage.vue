@@ -10,6 +10,7 @@
         <p class="app-subtitle">在浏览器中编译并运行 Kotlin 代码</p>
       </div>
       <div class="header-actions">
+        <SearchBox />
         <router-link to="/learn" class="icon-btn" title="学习中心">
           <span>📚</span>
         </router-link>
@@ -150,8 +151,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import MonacoEditor from '@/components/CodeEditor/MonacoEditor.vue'
+import SearchBox from '@/components/SearchBox/SearchBox.vue'
 import { useCompiler } from '@/composables/useCompiler'
 import { useTheme } from '@/composables/useTheme'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { generateShareUrl, getSharedCode, clearCodeFromUrl } from '@/utils/codeShare'
 
 // 默认 Kotlin 示例代码
@@ -186,6 +189,36 @@ const shareLinkCopied = ref(false)
 // 使用 composables
 const { isDark, toggleTheme } = useTheme()
 const { isCompiling, isExecuting, compileResult, executionResult, hasErrors, compile, clearResults } = useCompiler() as any
+
+// 键盘快捷键配置
+useKeyboardShortcuts([
+  {
+    key: 'Enter',
+    ctrl: true,
+    description: '运行代码',
+    action: () => {
+      if (!kotlinCode.value.trim() || isCompiling.value) return
+      handleCompile()
+    }
+  },
+  {
+    key: 's',
+    ctrl: true,
+    description: '复制代码',
+    action: async () => {
+      if (kotlinCode.value.trim()) {
+        await copyToClipboard(kotlinCode.value)
+      }
+    }
+  },
+  {
+    key: 'Escape',
+    description: '清空输出',
+    action: () => {
+      clearConsole()
+    }
+  }
+])
 
 // 页面加载时检查是否有分享的代码
 onMounted(() => {

@@ -12,6 +12,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <SearchBox />
         <router-link to="/" class="icon-btn" title="打开完整编辑器">
           <span>💻</span>
         </router-link>
@@ -116,6 +117,7 @@ import { useProgress } from '@/composables/useProgress'
 import { useCurriculum } from '@/composables/useCurriculum'
 import KnowledgeList from '@/components/KnowledgeList/KnowledgeList.vue'
 import DemoRunner from '@/components/DemoRunner/DemoRunner.vue'
+import SearchBox from '@/components/SearchBox/SearchBox.vue'
 import type { Exercise } from '@/data/curriculum'
 
 const route = useRoute()
