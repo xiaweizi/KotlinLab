@@ -1,0 +1,13 @@
+# Cloudflare Pages 配置
+# 使用 wrangler pages deploy 命令部署
+
+name = "kotlin-lab"
+compatibility_date = "2024-04-01"
+
+# Pages 项目配置
+pages_build_output_dir = "dist"
+
+[env.production]
+routes = [
+  { pattern = "/*", zone_name = "your-domain.com" }
+]
