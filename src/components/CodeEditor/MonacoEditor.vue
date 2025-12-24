@@ -42,7 +42,7 @@ function loadMonacoFromCDN(): Promise<void> {
     // 配置 Monaco 的 worker 路径
     const baseUrl = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min'
     ;(window as any).MonacoEnvironment = {
-      getWorkerUrl: function (workerId: string, label: string) {
+      getWorkerUrl: function (_workerId: string, _label: string) {
         return `${baseUrl}/vs/base/worker/workerMain.js`
       }
     }
