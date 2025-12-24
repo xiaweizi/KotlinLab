@@ -100,6 +100,7 @@ export const curriculum: DayCurriculum[] = [
     // 数值类型转换
     val a: Int = 10
     val b: Long = a.toLong()
+    println("Int转Long: $a -> $b")
 
     // 字符串模板
     println("Hello, $name! 学习第 $year 年")

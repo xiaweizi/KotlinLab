@@ -86,6 +86,25 @@ export class PlaygroundCompilerStrategy implements ICompilerStrategy {
    */
   private parseResponse(data: any, startTime: number): CompileResult {
     const errors: CompilationError[] = []
+    const warnings: CompilationError[] = []
+
+    // 需要过滤掉的警告模式
+    const warningPatterns = [
+      'Variable is unused',
+      'Parameter',
+      'is unused',
+      'unused',
+      'never used',
+      'assigned but never accessed'
+    ]
+
+    // 判断是否为可忽略的警告
+    function isIgnorableWarning(message: string): boolean {
+      const lowerMessage = message.toLowerCase()
+      return warningPatterns.some(pattern =>
+        lowerMessage.includes(pattern.toLowerCase())
+      )
+    }
 
     // 处理错误 - errors 是一个对象，键是文件名
     if (data.errors) {
@@ -94,12 +113,25 @@ export class PlaygroundCompilerStrategy implements ICompilerStrategy {
         const errorList = data.errors[fileName] as any[]
         if (Array.isArray(errorList)) {
           for (const err of errorList) {
-            errors.push({
+            const message = err.message || err.severity || '编译错误'
+
+            // 判断是错误还是警告
+            const severity = err.severity === 'warning' || isIgnorableWarning(message)
+              ? 'warning'
+              : 'error'
+
+            const errorItem: CompilationError = {
               line: err.line || err.lineNumber || 0,
               column: err.column || err.chColumn || 0,
-              message: err.message || err.severity || '编译错误',
-              severity: 'error'
-            })
+              message,
+              severity
+            }
+
+            if (severity === 'warning') {
+              warnings.push(errorItem)
+            } else {
+              errors.push(errorItem)
+            }
           }
         }
       }
@@ -115,12 +147,12 @@ export class PlaygroundCompilerStrategy implements ICompilerStrategy {
       })
     }
 
-    // 如果有错误，返回失败结果
+    // 如果有错误，返回失败结果（警告不算错误）
     if (errors.length > 0) {
       return {
         success: false,
         errors,
-        warnings: [],
+        warnings,
         executionTime: performance.now() - startTime,
         rawResponse: data
       }
@@ -143,7 +175,7 @@ export class PlaygroundCompilerStrategy implements ICompilerStrategy {
       success: true,
       jsCode: output,  // 对于 JS 目标，这实际上是运行后的输出文本
       errors: [],
-      warnings: [],
+      warnings,  // 包含警告信息
       executionTime: performance.now() - startTime,
       rawResponse: data
     }
