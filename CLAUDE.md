@@ -1,6 +1,6 @@
-# Kotlin Web Compiler
+# KotlinLab
 
-> 在浏览器中编译并运行 Kotlin 代码 + Kotlin 渐进式学习系统
+> Kotlin 在线学习实验室 - 编译器 + 14天渐进式学习系统
 
 ## 变更记录 (Changelog)
 
@@ -31,7 +31,7 @@
 
 ## 项目愿景
 
-Kotlin Web Compiler 是一个基于 Web 的 Kotlin 学习平台，提供：
+KotlinLab 是一个基于 Web 的 Kotlin 学习平台，提供：
 1. **在线编译器**：在浏览器中编写、编译和运行 Kotlin 代码
 2. **渐进式学习**：14 天系统化 Kotlin 课程，从基础到实战
 3. **交互式 Demo**：每个知识点都有可运行的代码示例
