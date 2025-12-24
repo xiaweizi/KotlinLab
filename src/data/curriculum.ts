@@ -1654,6 +1654,7 @@ fun main() {
     // 创建集合的各种方式
     println("\\n创建方式:")
     val emptyList = emptyList<String>()
+    println("空列表: " + emptyList)
     val listOrNull = listOfNotNull(1, 2, null, 3, null, 4)
     println("过滤 null: " + listOrNull)
 
