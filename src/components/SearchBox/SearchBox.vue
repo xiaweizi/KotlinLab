@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCurriculum } from '@/composables/useCurriculum'
 
@@ -126,6 +126,33 @@ const closeSearch = () => {
   isOpen.value = false
   searchQuery.value = ''
 }
+
+const focusSearchInput = () => {
+  nextTick(() => {
+    searchInputRef.value?.focus()
+  })
+}
+
+const handleGlobalKeyDown = (event: KeyboardEvent) => {
+  const isCtrlOrMeta = event.ctrlKey || event.metaKey
+  if (!isCtrlOrMeta) return
+  if (event.key.toLowerCase() !== 'k') return
+
+  event.preventDefault()
+  if (isOpen.value) {
+    focusSearchInput()
+    return
+  }
+  openSearch()
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleGlobalKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleGlobalKeyDown)
+})
 
 // 执行搜索
 const performSearch = () => {

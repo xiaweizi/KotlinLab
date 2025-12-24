@@ -13,7 +13,7 @@
       </div>
       <div class="header-actions">
         <SearchBox />
-        <router-link to="/" class="icon-btn" title="打开完整编辑器">
+        <router-link to="/editor" class="icon-btn" title="打开完整编辑器">
           <span>💻</span>
         </router-link>
         <button @click="toggleTheme" class="icon-btn" :title="isDark ? '切换到亮色主题' : '切换到深色主题'">
@@ -106,15 +106,6 @@
         <button @click="showHintModal = false" class="btn-small">关闭</button>
       </div>
     </div>
-
-    <!-- 判题结果弹窗 -->
-    <div v-if="showValidationModal" class="modal-overlay" @click="showValidationModal = false">
-      <div class="modal-content" @click.stop>
-        <h3>{{ validationTitle }}</h3>
-        <pre class="validation-text">{{ validationMessage }}</pre>
-        <button @click="showValidationModal = false" class="btn-small">关闭</button>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -148,11 +139,6 @@ const expandedExercise = ref<string | null>(null)
 const showHintModal = ref(false)
 const currentHint = ref('')
 
-// 判题结果弹窗
-const showValidationModal = ref(false)
-const validationTitle = ref('')
-const validationMessage = ref('')
-
 // DemoRunner 组件引用
 const demoRunnerRef = ref<InstanceType<typeof DemoRunner> | null>(null)
 
@@ -179,39 +165,9 @@ const showHint = (exercise: Exercise) => {
   showHintModal.value = true
 }
 
-function openValidationModal(title: string, message: string) {
-  validationTitle.value = title
-  validationMessage.value = message
-  showValidationModal.value = true
-}
-
-function normalizeOutput(text: string): string {
-  return text.replace(/\r\n/g, '\n')
-}
-
-function parseValidator(validator: string): RegExp | null {
-  const trimmed = validator.trim()
-  if (!trimmed) return null
-
-  try {
-    if (trimmed.startsWith('/')) {
-      const lastSlash = trimmed.lastIndexOf('/')
-      if (lastSlash > 0) {
-        const pattern = trimmed.slice(1, lastSlash)
-        const flags = trimmed.slice(lastSlash + 1)
-        return new RegExp(pattern, flags)
-      }
-    }
-    return new RegExp(trimmed, 'm')
-  } catch {
-    return null
-  }
-}
-
 // 验证练习题答案
 const checkExercise = async (exercise: Exercise) => {
   if (!demoRunnerRef.value) {
-    openValidationModal('⚠️ 无法验证', '未找到运行器组件，请刷新页面后重试。')
     return
   }
 
@@ -222,34 +178,18 @@ const checkExercise = async (exercise: Exercise) => {
   }
 
   if (!exercise.validator) {
-    openValidationModal('ℹ️ 暂不支持自动判题', '该练习未配置 validator（输出正则），请参考提示/答案自行核对。')
+    demoRunnerRef.value.setOutputMessage('该练习未配置 validator（输出正则），无法自动判题。', {
+      isError: false,
+      badge: { type: 'fail', text: '未配置判题规则' }
+    })
     return
   }
 
-  const validator = parseValidator(exercise.validator)
-  if (!validator) {
-    openValidationModal('⚠️ 判题配置错误', `validator 不是合法的正则表达式：\n${exercise.validator}`)
-    return
+  const { passed } = await demoRunnerRef.value.validateExercise(exercise.validator)
+  demoRunnerRef.value.focusOutputPanel()
+  if (passed) {
+    markExerciseCompleted(day.value, exercise.id)
   }
-
-  const result = await demoRunnerRef.value.runCurrentCode()
-  if (!result.success) {
-    openValidationModal('❌ 未通过（编译失败）', result.output)
-    return
-  }
-
-  const output = normalizeOutput(result.output).trim()
-  const passed = validator.test(output)
-  if (!passed) {
-    openValidationModal(
-      '❌ 未通过（输出不匹配）',
-      `期望匹配正则：${exercise.validator}\n\n实际输出：\n${output || '(无输出)'}`
-    )
-    return
-  }
-
-  markExerciseCompleted(day.value, exercise.id)
-  openValidationModal('✅ 通过', '输出符合预期，已标记该练习为完成。')
 }
 
 // 处理 Demo 完成事件
@@ -271,22 +211,6 @@ onMounted(() => {
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
-}
-
-.validation-text {
-  margin: 0.75rem 0 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 0.75rem;
-  max-height: 50vh;
-  overflow: auto;
 }
 
 // 顶部导航栏

@@ -89,9 +89,14 @@
       </div>
 
       <!-- 输出区域 -->
-      <div class="output-panel">
+      <div ref="outputPanelRef" class="output-panel" tabindex="-1">
         <div class="panel-header">
-          <span class="panel-title">输出结果</span>
+          <div class="output-header">
+            <span class="panel-title">输出结果</span>
+            <span v-if="validationBadge" class="validation-badge" :class="validationBadge.type">
+              {{ validationBadge.text }}
+            </span>
+          </div>
           <button @click="clearOutput" class="action-btn" title="清空输出">
             🗑 清空
           </button>
@@ -116,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import MonacoEditor from '@/components/CodeEditor/MonacoEditor.vue'
 import { useCompiler } from '@/composables/useCompiler'
 import { useTheme } from '@/composables/useTheme'
@@ -139,6 +144,11 @@ type RunCodeResult =
   | { success: true; output: string }
   | { success: false; output: string; error: string }
 
+type ValidationBadge =
+  | { type: 'pass'; text: string }
+  | { type: 'fail'; text: string }
+  | null
+
 // 练习题模式
 const isExerciseMode = ref(false)
 
@@ -159,6 +169,8 @@ const currentCode = ref('')
 // 输出
 const output = ref('点击「运行代码」查看结果...')
 const hasError = ref(false)
+const validationBadge = ref<ValidationBadge>(null)
+const outputPanelRef = ref<HTMLElement | null>(null)
 
 // 获取当前 Demo
 const currentDemo = computed(() => props.demos[currentDemoIndex.value])
@@ -169,6 +181,7 @@ watch(currentDemo, (demo) => {
     currentCode.value = demo.code
     output.value = '点击「运行代码」查看结果...'
     hasError.value = false
+    validationBadge.value = null
   }
 }, { immediate: true })
 
@@ -181,15 +194,46 @@ function normalizeOutput(text: string): string {
   return text.replace(/\r\n/g, '\n')
 }
 
+function parseValidator(validator: string): RegExp | null {
+  const trimmed = validator.trim()
+  if (!trimmed) return null
+
+  try {
+    if (trimmed.startsWith('/')) {
+      const lastSlash = trimmed.lastIndexOf('/')
+      if (lastSlash > 0) {
+        const pattern = trimmed.slice(1, lastSlash)
+        const flags = trimmed.slice(lastSlash + 1)
+        return new RegExp(pattern, flags)
+      }
+    }
+    return new RegExp(trimmed, 'm')
+  } catch {
+    return null
+  }
+}
+
+function setOutputMessage(message: string, options?: { isError?: boolean; badge?: ValidationBadge }) {
+  output.value = message
+  hasError.value = options?.isError ?? false
+  validationBadge.value = options?.badge ?? null
+}
+
+async function focusOutputPanel() {
+  await nextTick()
+  outputPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  outputPanelRef.value?.focus({ preventScroll: true })
+}
+
 // 执行当前代码并返回结果（供外部判题/验证使用）
 const runCurrentCode = async (): Promise<RunCodeResult> => {
   if (!currentCode.value.trim()) {
-    output.value = '代码为空，无法运行。'
-    hasError.value = true
+    setOutputMessage('代码为空，无法运行。', { isError: true, badge: null })
     return { success: false, output: output.value, error: 'empty-code' }
   }
 
   hasError.value = false
+  validationBadge.value = null
   const result = await compile(currentCode.value)
 
   if (result.success) {
@@ -209,6 +253,46 @@ const runCurrentCode = async (): Promise<RunCodeResult> => {
     output.value = formatCompileErrors(result.errors || [])
     return { success: false, output: output.value, error: 'compile-error' }
   }
+}
+
+// 验证练习题：运行 + 基于 validator 判题，并将结果展示在输出面板
+const validateExercise = async (validator: string): Promise<{ passed: boolean }> => {
+  if (!validator.trim()) {
+    setOutputMessage('该练习未配置 validator（输出正则），无法自动判题。', {
+      isError: false,
+      badge: { type: 'fail', text: '未配置判题规则' }
+    })
+    return { passed: false }
+  }
+
+  const regex = parseValidator(validator)
+  if (!regex) {
+    setOutputMessage(`validator 不是合法的正则表达式：\n${validator}`, {
+      isError: true,
+      badge: { type: 'fail', text: '判题配置错误' }
+    })
+    return { passed: false }
+  }
+
+  const result = await runCurrentCode()
+  if (!result.success) {
+    setOutputMessage(result.output, { isError: true, badge: { type: 'fail', text: '编译失败' } })
+    return { passed: false }
+  }
+
+  const normalizedOutput = normalizeOutput(result.output).trim()
+  const passed = regex.test(normalizedOutput)
+
+  if (!passed) {
+    setOutputMessage(
+      `❌ 未通过：输出不匹配\n\n期望匹配正则：${validator}\n\n实际输出：\n${normalizedOutput || '(无输出)'}`,
+      { isError: true, badge: { type: 'fail', text: '未通过' } }
+    )
+    return { passed: false }
+  }
+
+  setOutputMessage(normalizedOutput || '执行成功 (无输出)', { isError: false, badge: { type: 'pass', text: '通过' } })
+  return { passed: true }
 }
 
 // 运行代码（UI 按钮入口）
@@ -240,8 +324,7 @@ const copyCode = async () => {
 
 // 清空输出
 const clearOutput = () => {
-  output.value = '输出已清空'
-  hasError.value = false
+  setOutputMessage('输出已清空', { isError: false, badge: null })
 }
 
 // 上一个 Demo
@@ -282,8 +365,7 @@ const loadExerciseCode = (code: string, title: string, exerciseId: string) => {
   isExerciseMode.value = true
   currentExerciseTitle.value = title
   currentExerciseId.value = exerciseId
-  output.value = '练习题已加载，请完成后点击「运行代码」验证...'
-  hasError.value = false
+  setOutputMessage('练习题已加载，请完成后点击「运行代码」验证...', { isError: false, badge: null })
 }
 
 // 退出练习题模式
@@ -295,8 +377,7 @@ const exitExerciseMode = () => {
   isExerciseMode.value = false
   currentExerciseTitle.value = ''
   currentExerciseId.value = ''
-  output.value = '点击「运行代码」查看结果...'
-  hasError.value = false
+  setOutputMessage('点击「运行代码」查看结果...', { isError: false, badge: null })
 }
 
 function getExerciseContext(): { isExerciseMode: boolean; exerciseId: string } {
@@ -311,7 +392,10 @@ defineExpose({
   loadExerciseCode,
   exitExerciseMode,
   runCurrentCode,
-  getExerciseContext
+  getExerciseContext,
+  validateExercise,
+  setOutputMessage,
+  focusOutputPanel
 })
 </script>
 
@@ -455,6 +539,34 @@ defineExpose({
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.output-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.validation-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+
+  &.pass {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success-color);
+    border-color: rgba(16, 185, 129, 0.35);
+  }
+
+  &.fail {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--error-color);
+    border-color: rgba(239, 68, 68, 0.35);
+  }
 }
 
 .panel-actions {

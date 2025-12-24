@@ -126,13 +126,13 @@
         <!-- 控制台输出 -->
         <div class="output-panel console-output">
           <div class="section-header compact">
-            <div class="section-title">
-              <span class="language-badge console">⚡</span>
-              <h3>控���台</h3>
-            </div>
-            <button
-              v-if="executionResult?.output"
-              @click="clearConsole"
+          <div class="section-title">
+            <span class="language-badge console">⚡</span>
+            <h3>控制台</h3>
+          </div>
+          <button
+            v-if="executionResult?.output"
+            @click="clearConsole"
               class="icon-btn"
               title="清空控制台"
             >
