@@ -104,7 +104,10 @@ export default {
     ],
     navigate: 'Navigate',
     jump: 'Jump',
-    closeKey: 'Close'
+    closeKey: 'Close',
+    historyTitle: 'Search History',
+    clearAll: 'Clear All',
+    delete: 'Delete'
   },
 
   // Editor
@@ -125,16 +128,40 @@ export default {
     wrapOff: 'Off',
     outputPlaceholder: 'Click "Run Code" to see results...',
     compiling: 'Compiling...',
+    compile: 'Compile',
     compileSuccess: 'Compiled successfully',
     compileError: 'Compilation error',
     runCode: 'Run Code',
+    running: 'Running',
+    run: 'Run',
     resetCode: 'Reset Code',
     copyCode: 'Copy Code',
     openSettings: 'Open Settings',
     closeSettings: 'Close Settings',
     share: 'Share',
     shareSuccess: 'Share link copied to clipboard!',
-    shareError: 'Share failed:'
+    shareError: 'Share failed:',
+    copied: 'Copied',
+    clear: 'Clear',
+    sourceCode: 'Source Code',
+    jsOutput: 'JavaScript Output',
+    console: 'Console',
+    clickToCompile: 'Click "Compile" button to run Kotlin code...',
+    loadedSharedCode: 'Shared code loaded, click "Compile" to run...',
+    noCodeToShare: 'No code to share',
+    shareLinkCopied: '✓ Share link copied to clipboard!',
+    shareFailed: 'Share failed',
+    copiedToClipboard: 'Copied to clipboard!',
+    copyFailed: 'Copy failed',
+    compileSuccessWithTime: '✓ Compiled successfully',
+    compileFailedWithTime: '✗ Compilation failed',
+    compileErrorTitle: 'Compilation Error',
+    consoleCleared: 'Console cleared',
+    lineColumn: 'Line',
+    jsOutputTitle: 'JavaScript Output',
+    consoleTitle: 'Console',
+    copyCodeTitle: 'Copy code',
+    clearConsoleTitle: 'Clear console'
   },
 
   // Validation
@@ -174,11 +201,27 @@ export default {
     advanced: 'Advanced'
   },
 
+  // Demo Buttons
+  demo: {
+    previous: 'Previous',
+    next: 'Next',
+    previousDemo: 'Previous Demo',
+    nextDemo: 'Next Demo'
+  },
+
   // Status
   status: {
     all: 'All',
     completed: 'Completed',
     inProgress: 'In Progress',
     locked: 'Locked'
+  },
+
+  // DemoRunner Extra Text
+  demoRunnerExtra: {
+    codeIsEmpty: 'Code is empty, cannot run.',
+    outputCleared: 'Output cleared',
+    validatorNotValid: 'validator is not a valid regex',
+    exerciseNotConfigured: 'This exercise has no validator (output regex) configured, cannot auto-grade.'
   }
 } as const

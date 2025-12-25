@@ -193,11 +193,12 @@ const formatTime = (minutes: number): string => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 1.25rem 2rem;
   border-bottom: 1px solid var(--border-color);
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  min-height: 4.5rem;
 }
 
 [data-theme="dark"] .app-header {

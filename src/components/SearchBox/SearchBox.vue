@@ -5,7 +5,7 @@
       class="search-trigger"
       :title="shortcutHint"
     >
-      <span>🔍</span>
+      <span class="search-icon">🔍</span>
       <span class="search-text">{{ t('common.search') }}</span>
       <span class="shortcut-hint">{{ shortcutText }}</span>
     </button>
@@ -15,62 +15,76 @@
       <Transition name="fade">
         <div v-if="isOpen" class="search-modal" @click.self="closeSearch">
           <div class="search-dialog">
-          <!-- 搜索输入框 -->
-          <div class="search-input-wrapper">
-            <span class="search-icon">🔍</span>
-            <input
-              ref="searchInputRef"
-              v-model="searchQuery"
-              type="text"
-              class="search-input"
-              :placeholder="t('search.placeholder')"
-              @keydown.esc="closeSearch"
-              @keydown.down="navigateResults(1)"
-              @keydown.up="navigateResults(-1)"
-              @keydown.enter="selectResult"
-            >
-            <button v-if="searchQuery" @click="searchQuery = ''" class="clear-btn">×</button>
-          </div>
-
-          <!-- 搜索结果 -->
-          <div class="search-results">
-            <div v-if="isSearching" class="search-loading">{{ t('search.searching') }}</div>
-            <div v-else-if="searchQuery && filteredResults.length === 0" class="search-empty">
-              {{ t('search.noResults', { query: searchQuery }) }}
-            </div>
-            <div v-else-if="!searchQuery" class="search-hints">
-              <p class="hints-title">💡 {{ t('search.hintsTitle') }}</p>
-              <ul class="hints-list">
-                <li v-for="(hint, index) in t('search.hints')" :key="index">{{ hint }}</li>
-              </ul>
-            </div>
-            <div v-else class="results-list">
-              <div
-                v-for="(result, index) in filteredResults"
-                :key="result.id"
-                class="result-item"
-                :class="{ selected: selectedIndex === index }"
-                @click="goToResult(result)"
-                @mouseenter="selectedIndex = index"
+            <!-- 搜索输入框 -->
+            <div class="search-input-wrapper">
+              <span class="search-icon">🔍</span>
+              <input
+                ref="searchInputRef"
+                v-model="searchQuery"
+                type="text"
+                class="search-input"
+                :placeholder="t('search.placeholder')"
+                @keydown.esc="closeSearch"
+                @keydown.down="navigateResults(1)"
+                @keydown.up="navigateResults(-1)"
+                @keydown.enter="selectResult"
+                @focus="onInputFocus"
               >
-                <span class="result-type">{{ getLocalizedType(result.type) }}</span>
-                <span class="result-day">Day {{ result.day }}</span>
-                <span class="result-title">{{ result.title }}</span>
-                <span v-if="result.matchText" class="result-match">"{{ result.matchText }}"</span>
+              <button v-if="searchQuery" @click="clearSearch" class="clear-btn">×</button>
+            </div>
+
+            <!-- 搜索结果 -->
+            <div class="search-results">
+              <div v-if="isSearching" class="search-loading">{{ t('search.searching') }}</div>
+              <div v-else-if="searchQuery && filteredResults.length === 0" class="search-empty">
+                {{ t('search.noResults', { query: searchQuery }) }}
+              </div>
+              <!-- 搜索历史 -->
+              <div v-else-if="!searchQuery && hasHistory" class="search-history">
+                <div class="history-header">
+                  <span class="history-title">🔥 {{ t('search.historyTitle') }}</span>
+                  <button @click="clearAllHistory" class="clear-all-btn">{{ t('search.clearAll') }}</button>
+                </div>
+                <ul class="history-list">
+                  <li v-for="(item, index) in searchHistory" :key="item.keyword" class="history-item">
+                    <span class="history-keyword" @click="searchHistoryClick(item.keyword)">{{ item.keyword }}</span>
+                    <button @click="removeHistory(index)" class="history-delete" :title="t('search.delete')">×</button>
+                  </li>
+                </ul>
+              </div>
+              <div v-else-if="!searchQuery && !hasHistory" class="search-hints">
+                <p class="hints-title">💡 {{ t('search.hintsTitle') }}</p>
+                <ul class="hints-list">
+                  <li v-for="(hint, index) in searchHints" :key="index">{{ hint }}</li>
+                </ul>
+              </div>
+              <div v-else class="results-list">
+                <div
+                  v-for="(result, index) in filteredResults"
+                  :key="result.id"
+                  class="result-item"
+                  :class="{ selected: selectedIndex === index }"
+                  @click="goToResult(result)"
+                  @mouseenter="selectedIndex = index"
+                >
+                  <span class="result-type">{{ getLocalizedType(result.type) }}</span>
+                  <span class="result-day">Day {{ result.day }}</span>
+                  <span class="result-title">{{ result.title }}</span>
+                  <span v-if="result.matchText" class="result-match">"{{ result.matchText }}"</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 底部提示 -->
-          <div class="search-footer">
-            <span class="footer-hint">
-              <kbd>↑↓</kbd> {{ t('search.navigate') }}
-              <kbd>Enter</kbd> {{ t('search.jump') }}
-              <kbd>Esc</kbd> {{ t('search.closeKey') }}
-            </span>
+            <!-- 底部提示 -->
+            <div class="search-footer">
+              <span class="footer-hint">
+                <kbd>↑↓</kbd> {{ t('search.navigate') }}
+                <kbd>Enter</kbd> {{ t('search.jump') }}
+                <kbd>Esc</kbd> {{ t('search.closeKey') }}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
       </Transition>
     </Teleport>
   </div>
@@ -95,9 +109,97 @@ interface SearchResult {
   exerciseId?: string
 }
 
+interface SearchHistoryItem {
+  keyword: string
+  timestamp: number
+}
+
 const { t } = useI18n()
 const router = useRouter()
 const { allDays } = useCurriculum()
+
+// 搜索历史相关
+const STORAGE_KEY = 'kotlin-lab-search-history'
+const MAX_HISTORY = 5
+
+const searchHistory = ref<SearchHistoryItem[]>([])
+
+// 获取搜索提示数���
+const searchHints = computed(() => {
+  const hints = t('search.hints')
+  if (typeof hints === 'string') return []
+  return hints
+})
+
+// 是否有搜索历史
+const hasHistory = computed(() => searchHistory.value.length > 0)
+
+// 加载搜索历史
+function loadHistory(): void {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      searchHistory.value = JSON.parse(saved)
+    }
+  } catch {
+    searchHistory.value = []
+  }
+}
+
+// 保存搜索历史
+function saveHistory(): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(searchHistory.value))
+}
+
+// 添加搜索历史
+function addHistory(keyword: string): void {
+  if (!keyword.trim()) return
+
+  // 移除相同关键词的历史记录
+  searchHistory.value = searchHistory.value.filter(item => item.keyword !== keyword)
+
+  // 添加到历史
+  searchHistory.value.unshift({
+    keyword: keyword.trim(),
+    timestamp: Date.now()
+  })
+
+  // 保持最多 MAX_HISTORY 条
+  searchHistory.value = searchHistory.value.slice(0, MAX_HISTORY)
+
+  saveHistory()
+}
+
+// 删除单条历史
+function removeHistory(index: number): void {
+  searchHistory.value.splice(index, 1)
+  saveHistory()
+}
+
+// 清空所有历史
+function clearAllHistory(): void {
+  searchHistory.value = []
+  saveHistory()
+}
+
+// 点击历史记录进行搜索
+function searchHistoryClick(keyword: string): void {
+  searchQuery.value = keyword
+  // 自动执行搜索
+  nextTick(() => {
+    performSearch()
+  })
+}
+
+// 清空搜索框
+function clearSearch(): void {
+  searchQuery.value = ''
+}
+
+// 输入框获得焦点时加载历史
+function onInputFocus(): void {
+  loadHistory()
+}
 
 // 搜索状态
 const isOpen = ref(false)
@@ -132,6 +234,7 @@ const openSearch = () => {
   isOpen.value = true
   searchQuery.value = ''
   selectedIndex.value = 0
+  loadHistory()
   nextTick(() => {
     searchInputRef.value?.focus()
   })
@@ -164,6 +267,7 @@ const handleGlobalKeyDown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   document.addEventListener('keydown', handleGlobalKeyDown)
+  loadHistory()
 })
 
 onUnmounted(() => {
@@ -246,6 +350,11 @@ const performSearch = () => {
 
   filteredResults.value = uniqueResults.slice(0, 10) // 最多显示10条结果
   isSearching.value = false
+
+  // 添加到搜索历史
+  if (results.length > 0) {
+    addHistory(searchQuery.value)
+  }
 }
 
 // 防抖搜索
@@ -292,14 +401,17 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.375rem 0.875rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.625rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
+  justify-content: center;
 
   &:hover {
     background: var(--bg-tertiary);
@@ -307,22 +419,14 @@ defineExpose({
   }
 }
 
-.search-text {
+.search-text,
+.shortcut-hint {
   display: none;
 }
 
-@media (min-width: 768px) {
-  .search-text {
-    display: inline;
-  }
-}
-
-.shortcut-hint {
-  padding: 0.125rem 0.375rem;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-  font-size: 0.6875rem;
-  color: var(--text-secondary);
+.search-icon {
+  font-size: 1.125rem;
+  line-height: 1;
 }
 
 // 搜索弹窗
@@ -405,6 +509,92 @@ defineExpose({
   padding: 2rem;
   text-align: center;
   color: var(--text-secondary);
+}
+
+// 搜索历史
+.search-history {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.history-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.clear-all-btn {
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--bg-tertiary);
+  }
+}
+
+.history-keyword {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-delete {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--error-color);
+    color: white;
+  }
 }
 
 .hints-title {

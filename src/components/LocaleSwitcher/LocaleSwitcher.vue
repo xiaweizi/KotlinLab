@@ -23,15 +23,18 @@ const currentLocaleLabel = computed(() => {
 .locale-switcher {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
 
   &:hover {
@@ -45,17 +48,11 @@ const currentLocaleLabel = computed(() => {
 }
 
 .locale-icon {
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1;
 }
 
 .locale-text {
   display: none;
-}
-
-@media (min-width: 640px) {
-  .locale-text {
-    display: inline;
-  }
 }
 </style>

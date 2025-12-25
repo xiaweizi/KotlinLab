@@ -104,7 +104,10 @@ export default {
     ],
     navigate: '导航',
     jump: '跳转',
-    closeKey: '关闭'
+    closeKey: '关闭',
+    historyTitle: '搜索历史',
+    clearAll: '清空',
+    delete: '删除'
   },
 
   // 编辑器
@@ -125,16 +128,40 @@ export default {
     wrapOff: '关闭',
     outputPlaceholder: '点击「运行代码」查看结果...',
     compiling: '编译中...',
+    compile: '编译',
     compileSuccess: '编译成功',
     compileError: '编译错误',
     runCode: '运行代码',
+    running: '运行中',
+    run: '运行',
     resetCode: '重置代码',
     copyCode: '复制代码',
     openSettings: '打开设置',
     closeSettings: '关闭设置',
     share: '分享',
     shareSuccess: '分享链接已复制到剪贴板！',
-    shareError: '分享失败：'
+    shareError: '分享失败：',
+    copied: '已复制',
+    clear: '清空',
+    sourceCode: '源代码',
+    jsOutput: 'JavaScript 输出',
+    console: '控制台',
+    clickToCompile: '点击「编译」按钮运行 Kotlin 代码...',
+    loadedSharedCode: '已加载分享的代码，点击「编译」运行...',
+    noCodeToShare: '没有可分享的代码',
+    shareLinkCopied: '✓ 分享链接已复制到剪贴板！',
+    shareFailed: '分享失败',
+    copiedToClipboard: '已复制到剪贴板！',
+    copyFailed: '复制失败',
+    compileSuccessWithTime: '✓ 编译成功',
+    compileFailedWithTime: '✗ 编译失败',
+    compileErrorTitle: '编译错误',
+    consoleCleared: '控制台已清空',
+    lineColumn: '行',
+    jsOutputTitle: 'JavaScript 输出',
+    consoleTitle: '控制台',
+    copyCodeTitle: '复制代码',
+    clearConsoleTitle: '清空控制台'
   },
 
   // 判题相关
@@ -174,12 +201,28 @@ export default {
     advanced: '进阶'
   },
 
+  // Demo 按钮
+  demo: {
+    previous: '上一个',
+    next: '下一个',
+    previousDemo: '上一个 Demo',
+    nextDemo: '下一个 Demo'
+  },
+
   // 状态
   status: {
     all: '全部',
     completed: '已完成',
     inProgress: '进行中',
     locked: '锁定'
+  },
+
+  // DemoRunner 额外文本
+  demoRunnerExtra: {
+    codeIsEmpty: '代码为空，无法运行。',
+    outputCleared: '输出已清空',
+    validatorNotValid: 'validator 不是合法的正则表达式',
+    exerciseNotConfigured: '该练习未配置 validator（输出正则），无法自动判题。'
   }
 } as const
 
