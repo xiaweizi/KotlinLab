@@ -4,15 +4,15 @@
     <div class="demo-nav">
       <div class="nav-header">
         <h2 class="nav-title">
-          <span v-if="isExerciseMode">📝 练习题模式</span>
-          <span v-else>🎯 Demo {{ currentDemoIndex + 1 }}/{{ demos.length }}</span>
+          <span v-if="isExerciseMode">📝 {{ t('demoRunner.exerciseMode') }}</span>
+          <span v-else>🎯 {{ t('demoRunner.demoMode') }} {{ currentDemoIndex + 1 }}/{{ demos.length }}</span>
         </h2>
         <h3 class="demo-title">
-          <span v-if="isExerciseMode">{{ currentExerciseTitle || '练习题' }}</span>
+          <span v-if="isExerciseMode">{{ currentExerciseTitle || t('demoRunner.exerciseTitle') }}</span>
           <span v-else>{{ currentDemo?.title }}</span>
         </h3>
         <p class="demo-description">
-          <span v-if="isExerciseMode">完成练习后点击「运行代码」验证答案</span>
+          <span v-if="isExerciseMode">{{ t('demoRunner.exercisePrompt') }}</span>
           <span v-else>{{ currentDemo?.description }}</span>
         </p>
       </div>
@@ -21,7 +21,7 @@
           @click="previousDemo"
           :disabled="currentDemoIndex === 0"
           class="nav-btn"
-          title="上一个 Demo"
+          :title="t('demoRunner.previousDemo')"
         >
           ◀
         </button>
@@ -43,7 +43,7 @@
           @click="nextDemo"
           :disabled="currentDemoIndex === demos.length - 1"
           class="nav-btn"
-          title="下一个 Demo"
+          :title="t('demoRunner.nextDemo')"
         >
           ▶
         </button>
@@ -54,16 +54,16 @@
     <div class="editor-container">
       <div class="editor-panel">
         <div class="panel-header">
-          <span class="panel-title">Kotlin 代码</span>
+          <span class="panel-title">{{ t('demoRunner.kotlinCode') }}</span>
           <div class="panel-actions">
-            <button v-if="isExerciseMode" @click="exitExerciseMode" class="action-btn exit-btn" title="退出练习题模式">
-              ← 返回 Demo
+            <button v-if="isExerciseMode" @click="exitExerciseMode" class="action-btn exit-btn" :title="t('demoRunner.exitExercise')">
+              ← {{ t('demoRunner.exitExercise') }}
             </button>
-            <button @click="resetCode" class="action-btn" title="重置代码">
-              🔁 重置
+            <button @click="resetCode" class="action-btn" :title="t('common.reset')">
+              🔁 {{ t('common.reset') }}
             </button>
-            <button @click="copyCode" class="action-btn" title="复制代码">
-              📋 复制
+            <button @click="copyCode" class="action-btn" :title="t('common.copy')">
+              📋 {{ t('common.copy') }}
             </button>
           </div>
         </div>
@@ -84,7 +84,7 @@
           >
             <span v-if="isCompiling" class="spinner">⟳</span>
             <span v-else>▶</span>
-            {{ isCompiling ? '运行中...' : '运行代码' }}
+            {{ isCompiling ? t('common.running') : t('common.run') }}
           </button>
         </div>
       </div>
@@ -93,7 +93,7 @@
       <div ref="outputPanelRef" class="output-panel" tabindex="-1">
         <div class="panel-header">
           <div class="output-header">
-            <span class="panel-title">输出结果</span>
+            <span class="panel-title">{{ t('demoRunner.output') }}</span>
             <span v-if="validationBadge" class="validation-badge" :class="validationBadge.type">
               {{ validationBadge.text }}
             </span>
@@ -103,12 +103,12 @@
               v-if="isExerciseMode && currentExerciseSolution"
               @click="toggleSolution"
               class="action-btn"
-              :title="showSolution ? '隐藏参考答案' : '显示参考答案'"
+              :title="showSolution ? t('demoRunner.hideSolution') : t('demoRunner.showSolution')"
             >
-              {{ showSolution ? '🙈 隐藏答案' : '👁️ 参考答案' }}
+              {{ showSolution ? t('demoRunner.hideSolution') : t('demoRunner.showSolution') }}
             </button>
-            <button @click="clearOutput" class="action-btn" title="清空输出">
-              🗑 清空
+            <button @click="clearOutput" class="action-btn" :title="t('demoRunner.clearOutput')">
+              🗑 {{ t('demoRunner.clearOutput') }}
             </button>
           </div>
         </div>
@@ -117,9 +117,9 @@
         </div>
         <div v-if="isExerciseMode && showSolution && currentExerciseSolution" class="solution-wrapper">
           <div class="solution-header">
-            <span class="solution-title">参考答案</span>
-            <button @click="copySolution" class="action-btn" title="复制参考答案">
-              📋 复制答案
+            <span class="solution-title">{{ t('demoRunner.solutionTitle') }}</span>
+            <button @click="copySolution" class="action-btn" :title="t('demoRunner.copySolution')">
+              📋 {{ t('demoRunner.copySolution') }}
             </button>
           </div>
           <pre class="solution-text">{{ currentExerciseSolution }}</pre>
@@ -131,9 +131,9 @@
             @click="markCompleted"
             class="complete-btn"
           >
-            ✓ 标记为已完成
+            {{ t('demoRunner.markCompleted') }}
           </button>
-          <span v-else class="completed-badge">✓ 已完成</span>
+          <span v-else class="completed-badge">{{ t('demoRunner.completedBadge') }}</span>
         </div>
       </div>
     </div>
@@ -142,6 +142,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MonacoEditor from '@/components/CodeEditor/MonacoEditor.vue'
 import { useCompiler } from '@/composables/useCompiler'
 import { useTheme } from '@/composables/useTheme'
@@ -188,6 +189,7 @@ const currentExerciseId = ref<string>('')
 const currentExerciseSolution = ref<string>('')
 const showSolution = ref(false)
 
+const { t } = useI18n()
 const { isDark } = useTheme()
 const { compile, isCompiling, getEditorMarkers } = useCompiler()
 
@@ -198,7 +200,7 @@ const currentDemoIndex = ref(0)
 const currentCode = ref('')
 
 // 输出
-const output = ref('点击「运行代码」查看结果...')
+const output = ref(t('demoRunner.outputPlaceholder'))
 const hasError = ref(false)
 const validationBadge = ref<ValidationBadge>(null)
 const outputPanelRef = ref<HTMLElement | null>(null)
@@ -211,7 +213,7 @@ const currentDemo = computed(() => props.demos[currentDemoIndex.value])
 watch(currentDemo, (demo) => {
   if (demo) {
     currentCode.value = demo.code
-    output.value = '点击「运行代码」查看结果...'
+    output.value = t('demoRunner.outputPlaceholder')
     hasError.value = false
     validationBadge.value = null
     editorMarkers.value = []
@@ -221,8 +223,8 @@ watch(currentDemo, (demo) => {
 }, { immediate: true })
 
 function formatCompileErrors(errors: Array<{ line?: number; column?: number; message?: string }>): string {
-  if (!errors || errors.length === 0) return '编译失败（无详细错误信息）'
-  return `编译错误:\n${errors.map(e => `Line ${e.line ?? 0}:${e.column ?? 0} - ${e.message ?? ''}`.trim()).join('\n')}`
+  if (!errors || errors.length === 0) return t('editor.compileError')
+  return `${t('editor.compileError')}:\n${errors.map(e => `Line ${e.line ?? 0}:${e.column ?? 0} - ${e.message ?? ''}`.trim()).join('\n')}`
 }
 
 function normalizeOutput(text: string): string {
@@ -298,7 +300,7 @@ async function focusOutputPanel() {
 const toggleSolution = () => {
   if (!currentExerciseSolution.value) return
   if (!showSolution.value) {
-    const ok = confirm('确定要查看参考答案吗？建议先自己尝试再查看。')
+    const ok = confirm(t('demoRunner.solutionConfirm'))
     if (!ok) return
   }
   showSolution.value = !showSolution.value
@@ -309,7 +311,7 @@ const copySolution = async () => {
   try {
     await navigator.clipboard.writeText(currentExerciseSolution.value)
   } catch {
-    // 忽略复制失败（例如非安全上下文）
+    // Ignore copy failure
   }
 }
 
@@ -326,7 +328,7 @@ const runCurrentCode = async (): Promise<RunCodeResult> => {
   const result = await compile(currentCode.value)
 
   if (result.success) {
-    output.value = result.jsCode || '执行成功 (无输出)'
+    output.value = result.jsCode || t('editor.compileSuccess')
     const normalizedOutput = normalizeOutput(output.value).trim()
 
     if (!isExerciseMode.value && currentDemo.value?.expectedOutput) {
@@ -350,7 +352,7 @@ const validateExercise = async (validator: string, options?: ExerciseValidatorOp
   if (!validator.trim()) {
     setOutputMessage('该练习未配置 validator（输出正则），无法自动判题。', {
       isError: false,
-      badge: { type: 'fail', text: '未配置判题规则' }
+      badge: { type: 'fail', text: t('validation.notConfigured') }
     })
     return { passed: false }
   }
@@ -359,14 +361,14 @@ const validateExercise = async (validator: string, options?: ExerciseValidatorOp
   if (!regex) {
     setOutputMessage(`validator 不是合法的正则表达式：\n${validator}`, {
       isError: true,
-      badge: { type: 'fail', text: '判题配置错误' }
+      badge: { type: 'fail', text: t('validation.configError') }
     })
     return { passed: false }
   }
 
   const result = await runCurrentCode()
   if (!result.success) {
-    setOutputMessage(result.output, { isError: true, badge: { type: 'fail', text: '编译失败' } })
+    setOutputMessage(result.output, { isError: true, badge: { type: 'fail', text: t('validation.compileFailed') } })
     return { passed: false }
   }
 
@@ -375,13 +377,13 @@ const validateExercise = async (validator: string, options?: ExerciseValidatorOp
 
   if (!passed) {
     setOutputMessage(
-      `❌ 未通过：输出不匹配\n\n期望匹配正则：${validator}\n\n实际输出：\n${normalizedOutput || '(无输出)'}`,
-      { isError: true, badge: { type: 'fail', text: '未通过' } }
+      `❌ ${t('validation.validationFailed')}\n\n${t('validation.expectedRegex')}：${validator}\n\n${t('validation.actualOutput')}：\n${normalizedOutput || t('validation.noOutput')}`,
+      { isError: true, badge: { type: 'fail', text: t('validation.fail') } }
     )
     return { passed: false }
   }
 
-  setOutputMessage(normalizedOutput || '执行成功 (无输出)', { isError: false, badge: { type: 'pass', text: '通过' } })
+  setOutputMessage(normalizedOutput || t('editor.compileSuccess'), { isError: false, badge: { type: 'pass', text: t('validation.pass') } })
   return { passed: true }
 }
 
@@ -401,14 +403,14 @@ const resetCode = () => {
 const copyCode = async () => {
   try {
     await navigator.clipboard.writeText(currentCode.value)
-    output.value = '已复制到剪贴板！'
+    output.value = t('common.copied')
     setTimeout(() => {
-      if (output.value === '已复制到剪贴板！') {
-        output.value = '点击「运行代码」查看结果...'
+      if (output.value === t('common.copied')) {
+        output.value = t('demoRunner.outputPlaceholder')
       }
     }, 1500)
   } catch (err) {
-    output.value = '复制失败: ' + (err as Error).message
+    output.value = `${t('editor.shareError')} ${(err as Error).message}`
   }
 }
 
@@ -471,7 +473,7 @@ const loadExerciseCode = (
   currentExerciseSolution.value = meta?.solution ?? ''
   showSolution.value = false
   editorMarkers.value = []
-  setOutputMessage('练习题已加载，请完成后点击「运行代码」验证...', { isError: false, badge: null })
+  setOutputMessage(t('demoRunner.exerciseLoaded'), { isError: false, badge: null })
 }
 
 // 退出练习题模式
@@ -486,7 +488,7 @@ const exitExerciseMode = () => {
   currentExerciseSolution.value = ''
   showSolution.value = false
   editorMarkers.value = []
-  setOutputMessage('点击「运行代码」查看结果...', { isError: false, badge: null })
+  setOutputMessage(t('demoRunner.outputPlaceholder'), { isError: false, badge: null })
 }
 
 function getExerciseContext(): { isExerciseMode: boolean; exerciseId: string } {

@@ -6,7 +6,7 @@
       :title="shortcutHint"
     >
       <span>🔍</span>
-      <span class="search-text">搜索</span>
+      <span class="search-text">{{ t('common.search') }}</span>
       <span class="shortcut-hint">{{ shortcutText }}</span>
     </button>
 
@@ -23,7 +23,7 @@
               v-model="searchQuery"
               type="text"
               class="search-input"
-              placeholder="搜索知识点、Demo、练习题..."
+              :placeholder="t('search.placeholder')"
               @keydown.esc="closeSearch"
               @keydown.down="navigateResults(1)"
               @keydown.up="navigateResults(-1)"
@@ -34,16 +34,14 @@
 
           <!-- 搜索结果 -->
           <div class="search-results">
-            <div v-if="isSearching" class="search-loading">搜索中...</div>
+            <div v-if="isSearching" class="search-loading">{{ t('search.searching') }}</div>
             <div v-else-if="searchQuery && filteredResults.length === 0" class="search-empty">
-              未找到 "{{ searchQuery }}" 相关内容
+              {{ t('search.noResults', { query: searchQuery }) }}
             </div>
             <div v-else-if="!searchQuery" class="search-hints">
-              <p class="hints-title">💡 搜索提示</p>
+              <p class="hints-title">💡 {{ t('search.hintsTitle') }}</p>
               <ul class="hints-list">
-                <li>输入关键词搜索知识点</li>
-                <li>支持搜索 Day、Demo、练习题</li>
-                <li>使用 ↑↓ 方向键导航，Enter 跳转</li>
+                <li v-for="(hint, index) in t('search.hints')" :key="index">{{ hint }}</li>
               </ul>
             </div>
             <div v-else class="results-list">
@@ -55,7 +53,7 @@
                 @click="goToResult(result)"
                 @mouseenter="selectedIndex = index"
               >
-                <span class="result-type">{{ result.type }}</span>
+                <span class="result-type">{{ getLocalizedType(result.type) }}</span>
                 <span class="result-day">Day {{ result.day }}</span>
                 <span class="result-title">{{ result.title }}</span>
                 <span v-if="result.matchText" class="result-match">"{{ result.matchText }}"</span>
@@ -66,9 +64,9 @@
           <!-- 底部提示 -->
           <div class="search-footer">
             <span class="footer-hint">
-              <kbd>↑↓</kbd> 导航
-              <kbd>Enter</kbd> 跳转
-              <kbd>Esc</kbd> 关闭
+              <kbd>↑↓</kbd> {{ t('search.navigate') }}
+              <kbd>Enter</kbd> {{ t('search.jump') }}
+              <kbd>Esc</kbd> {{ t('search.closeKey') }}
             </span>
           </div>
         </div>
@@ -81,11 +79,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useCurriculum } from '@/composables/useCurriculum'
+
+type ResultType = '知识点' | 'Demo' | '练习'
 
 interface SearchResult {
   id: string
-  type: '知识点' | 'Demo' | '练习'
+  type: ResultType
   day: number
   title: string
   matchText?: string
@@ -94,6 +95,7 @@ interface SearchResult {
   exerciseId?: string
 }
 
+const { t } = useI18n()
 const router = useRouter()
 const { allDays } = useCurriculum()
 
@@ -112,8 +114,18 @@ const shortcutText = computed(() => {
   return navigator.userAgent.includes('Mac') ? '⌘K' : 'Ctrl+K'
 })
 const shortcutHint = computed(() => {
-  return `搜索 (${shortcutText.value})`
+  return `${t('common.search')} (${shortcutText.value})`
 })
+
+// 获取本地化的类型名称
+const getLocalizedType = (type: ResultType): string => {
+  const typeMap: Record<ResultType, string> = {
+    '知识点': t('lessonPage.knowledge'),
+    'Demo': 'Demo',
+    '练习': t('lessonPage.exercises')
+  }
+  return typeMap[type] || type
+}
 
 // 打开搜索
 const openSearch = () => {

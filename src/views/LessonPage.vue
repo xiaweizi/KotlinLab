@@ -4,7 +4,7 @@
     <header class="lesson-header">
       <div class="header-left">
         <router-link to="/learn" class="back-btn">
-          <span>← 返回</span>
+          <span>← {{ t('common.back') }}</span>
         </router-link>
         <div class="lesson-info">
           <span class="day-badge">Day {{ day }}</span>
@@ -13,10 +13,11 @@
       </div>
       <div class="header-actions">
         <SearchBox />
-        <router-link to="/editor" class="icon-btn" title="打开完整编辑器">
+        <LocaleSwitcher />
+        <router-link to="/editor" class="icon-btn" :title="t('nav.editor')">
           <span>💻</span>
         </router-link>
-        <button @click="toggleTheme" class="icon-btn" :title="isDark ? '切换到亮色主题' : '切换到深色主题'">
+        <button @click="toggleTheme" class="icon-btn" :title="isDark ? t('theme.light') : t('theme.dark')">
           <span v-if="isDark">☀️</span>
           <span v-else>🌙</span>
         </button>
@@ -29,13 +30,13 @@
       <aside class="lesson-sidebar">
         <!-- 知识点 -->
         <section class="sidebar-section">
-          <h2 class="section-title">📚 知识点</h2>
+          <h2 class="section-title">📚 {{ t('lessonPage.knowledge') }}</h2>
           <KnowledgeList :topics="lessonData.topics" />
         </section>
 
         <!-- 练习题 -->
         <section v-if="lessonData.exercises.length > 0" class="sidebar-section">
-          <h2 class="section-title">📝 练习</h2>
+          <h2 class="section-title">📝 {{ t('lessonPage.exercises') }}</h2>
           <div class="exercises-list">
             <div
               v-for="exercise in lessonData.exercises"
@@ -54,13 +55,13 @@
                 <p class="exercise-description">{{ exercise.description }}</p>
                 <div class="exercise-actions">
                   <button @click="loadExercise(exercise)" class="btn-small btn-primary">
-                    在编辑器中打开
+                    {{ t('lessonPage.inEditor') }}
                   </button>
                   <button v-if="exercise.hint" @click="showHint(exercise)" class="btn-small btn-secondary">
-                    💡 提示
+                    💡 {{ t('lessonPage.hint') }}
                   </button>
                   <button @click="checkExercise(exercise)" class="btn-small btn-success">
-                    ✓ 验证答案
+                    ✓ {{ t('lessonPage.verifyAnswer') }}
                   </button>
                 </div>
               </div>
@@ -75,8 +76,8 @@
             class="complete-btn"
             :class="{ completed: isDayCompleted(day) }"
           >
-            <span v-if="isDayCompleted(day)">✓ 已完成</span>
-            <span v-else>标记为完成</span>
+            <span v-if="isDayCompleted(day)">{{ t('lessonPage.completed') }}</span>
+            <span v-else>{{ t('lessonPage.markCompleted') }}</span>
           </button>
         </section>
       </aside>
@@ -95,15 +96,15 @@
 
     <!-- 加载状态 -->
     <div v-else class="loading-state">
-      <p>加载中...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
 
     <!-- 提示弹窗 -->
     <div v-if="showHintModal" class="modal-overlay" @click="showHintModal = false">
       <div class="modal-content" @click.stop>
-        <h3>💡 提示</h3>
+        <h3>💡 {{ t('lessonPage.hint') }}</h3>
         <p>{{ currentHint }}</p>
-        <button @click="showHintModal = false" class="btn-small">关闭</button>
+        <button @click="showHintModal = false" class="btn-small">{{ t('common.close') }}</button>
       </div>
     </div>
   </div>
@@ -112,16 +113,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useTheme } from '@/composables/useTheme'
 import { useProgress } from '@/composables/useProgress'
 import { useCurriculum } from '@/composables/useCurriculum'
 import KnowledgeList from '@/components/KnowledgeList/KnowledgeList.vue'
 import DemoRunner from '@/components/DemoRunner/DemoRunner.vue'
 import SearchBox from '@/components/SearchBox/SearchBox.vue'
+import LocaleSwitcher from '@/components/LocaleSwitcher/LocaleSwitcher.vue'
 import type { Exercise } from '@/data/curriculum'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const { isDark, toggleTheme } = useTheme()
 const { getDayProgress, markDemoCompleted, markExerciseCompleted, isExerciseCompleted, isDayCompleted, markDayCompleted, addDayStudyTime, updateLastAccessed } = useProgress()
 const { getDay } = useCurriculum()
@@ -203,7 +207,7 @@ const loadExercise = (exercise: Exercise) => {
 
 // 显示提示
 const showHint = (exercise: Exercise) => {
-  currentHint.value = exercise.hint || '暂无提示'
+  currentHint.value = exercise.hint || t('lessonPage.showHint')
   showHintModal.value = true
 }
 
@@ -222,7 +226,7 @@ const checkExercise = async (exercise: Exercise) => {
   if (!exercise.validator) {
     demoRunnerRef.value.setOutputMessage('该练习未配置 validator（输出正则），无法自动判题。', {
       isError: false,
-      badge: { type: 'fail', text: '未配置判题规则' }
+      badge: { type: 'fail', text: t('validation.notConfigured') }
     })
     return
   }

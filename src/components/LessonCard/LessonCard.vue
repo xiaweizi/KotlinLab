@@ -27,7 +27,7 @@
           {{ difficultyText }}
         </span>
         <span class="meta-item">
-          ⏱️ {{ day.estimatedTime }} 分钟
+          ⏱️ {{ day.estimatedTime }} {{ t('lessonCard.minutes') }}
         </span>
       </div>
 
@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { DayCurriculum } from '@/data/curriculum'
 
 interface Props {
@@ -62,14 +63,16 @@ const emit = defineEmits<{
   click: []
 }>()
 
+const { t } = useI18n()
+
 const difficultyText = computed(() => {
   switch (props.day.difficulty) {
     case 'beginner':
-      return '入门'
+      return t('difficulty.beginner')
     case 'intermediate':
-      return '中级'
+      return t('difficulty.intermediate')
     case 'advanced':
-      return '进阶'
+      return t('difficulty.advanced')
     default:
       return ''
   }

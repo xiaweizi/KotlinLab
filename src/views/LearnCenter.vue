@@ -5,16 +5,17 @@
       <div class="header-left">
         <h1 class="app-title">
           <span class="kotlin-badge">Kotlin</span>
-          <span class="title-text">学习中心</span>
+          <span class="title-text">{{ t('learnCenter.title') }}</span>
         </h1>
-        <p class="app-subtitle">14天系统化学习 Kotlin 编程语言</p>
+        <p class="app-subtitle">{{ t('learnCenter.subtitle') }}</p>
       </div>
       <div class="header-actions">
         <SearchBox />
-        <router-link to="/editor" class="icon-btn" title="打开编辑器">
+        <LocaleSwitcher />
+        <router-link to="/editor" class="icon-btn" :title="t('nav.editor')">
           <span>💻</span>
         </router-link>
-        <button @click="toggleTheme" class="icon-btn" :title="isDark ? '切换到亮色主题' : '切换到深色主题'">
+        <button @click="toggleTheme" class="icon-btn" :title="isDark ? t('theme.light') : t('theme.dark')">
           <span v-if="isDark" class="icon-sun">☀️</span>
           <span v-else class="icon-moon">🌙</span>
         </button>
@@ -25,25 +26,25 @@
     <main class="main-content">
       <!-- 学习进度概览 -->
       <section class="progress-overview">
-        <h2 class="section-heading">📊 学习进度</h2>
+        <h2 class="section-heading">📊 {{ t('learnCenter.progress') }}</h2>
         <div class="progress-card">
           <div class="progress-info">
             <div class="progress-text">
               <span class="progress-percentage">{{ completionPercentage }}%</span>
-              <span class="progress-label">已完成 {{ completedDaysCount }} / {{ totalDays }} 天</span>
+              <span class="progress-label">{{ t('learnCenter.completedDays') }} {{ completedDaysCount }} / {{ totalDays }} {{ t('learnCenter.totalDays') }}</span>
             </div>
             <div class="progress-stats">
               <div class="stat-item">
                 <span class="stat-value">{{ stats.totalDemos }}</span>
-                <span class="stat-label">已完成 Demo</span>
+                <span class="stat-label">{{ t('learnCenter.completedDemos') }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-value">{{ stats.totalExercises }}</span>
-                <span class="stat-label">已完成练习</span>
+                <span class="stat-label">{{ t('learnCenter.completedExercises') }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-value">{{ formatTime(stats.totalStudyTime) }}</span>
-                <span class="stat-label">学习时长</span>
+                <span class="stat-label">{{ t('learnCenter.studyTime') }}</span>
               </div>
             </div>
           </div>
@@ -59,7 +60,7 @@
       <section class="curriculum-section">
         <!-- Week 1 -->
         <div class="week-block">
-          <h3 class="week-title">Week 1: 基础入门</h3>
+          <h3 class="week-title">{{ t('learnCenter.week1') }}</h3>
           <div class="days-grid">
             <LessonCard
               v-for="day in week1Days"
@@ -74,7 +75,7 @@
 
         <!-- Week 2 -->
         <div class="week-block">
-          <h3 class="week-title">Week 2: 进阶提升</h3>
+          <h3 class="week-title">{{ t('learnCenter.week2') }}</h3>
           <div class="days-grid">
             <LessonCard
               v-for="day in week2Days"
@@ -90,34 +91,34 @@
 
       <!-- 学习统计 -->
       <section class="stats-section">
-        <h2 class="section-heading">📈 学习统计</h2>
+        <h2 class="section-heading">📈 {{ t('learnCenter.stats') }}</h2>
         <div class="stats-grid">
           <div class="stat-card">
             <span class="stat-icon">📅</span>
             <div class="stat-content">
               <span class="stat-value-small">{{ stats.studyDays }}</span>
-              <span class="stat-label-small">学习天数</span>
+              <span class="stat-label-small">{{ t('learnCenter.studyDays') }}</span>
             </div>
           </div>
           <div class="stat-card">
             <span class="stat-icon">⏱️</span>
             <div class="stat-content">
               <span class="stat-value-small">{{ formatTime(stats.totalStudyTime) }}</span>
-              <span class="stat-label-small">总学习时长</span>
+              <span class="stat-label-small">{{ t('learnCenter.totalStudyTime') }}</span>
             </div>
           </div>
           <div class="stat-card">
             <span class="stat-icon">🎯</span>
             <div class="stat-content">
               <span class="stat-value-small">{{ stats.currentDay }}</span>
-              <span class="stat-label-small">当前进度</span>
+              <span class="stat-label-small">{{ t('learnCenter.currentProgress') }}</span>
             </div>
           </div>
           <div class="stat-card clickable" @click="resetProgress">
             <span class="stat-icon">🔄</span>
             <div class="stat-content">
-              <span class="stat-value-small">重置</span>
-              <span class="stat-label-small">学习进度</span>
+              <span class="stat-value-small">{{ t('common.reset') }}</span>
+              <span class="stat-label-small">{{ t('learnCenter.resetProgress') }}</span>
             </div>
           </div>
         </div>
@@ -129,12 +130,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useTheme } from '@/composables/useTheme'
 import { useProgress } from '@/composables/useProgress'
 import { useCurriculum } from '@/composables/useCurriculum'
 import LessonCard from '@/components/LessonCard/LessonCard.vue'
 import SearchBox from '@/components/SearchBox/SearchBox.vue'
+import LocaleSwitcher from '@/components/LocaleSwitcher/LocaleSwitcher.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 const {

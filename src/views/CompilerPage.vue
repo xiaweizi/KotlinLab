@@ -7,14 +7,15 @@
           <span class="kotlin-badge">Kotlin</span>
           <span class="title-text">Web Compiler</span>
         </h1>
-        <p class="app-subtitle">在浏览器中编译并运行 Kotlin 代码</p>
+        <p class="app-subtitle">{{ t('editor.title') }}</p>
       </div>
       <div class="header-actions">
         <SearchBox />
-        <router-link to="/learn" class="icon-btn" title="学习中心">
+        <LocaleSwitcher />
+        <router-link to="/learn" class="icon-btn" :title="t('nav.learn')">
           <span>📚</span>
         </router-link>
-        <button @click="toggleTheme" class="icon-btn" :title="isDark ? '切换到亮色主题' : '切换到深色主题'">
+        <button @click="toggleTheme" class="icon-btn" :title="isDark ? t('theme.light') : t('theme.dark')">
           <span v-if="isDark" class="icon-sun">☀️</span>
           <span v-else class="icon-moon">🌙</span>
         </button>
@@ -153,8 +154,10 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import MonacoEditor from '@/components/CodeEditor/MonacoEditor.vue'
 import SearchBox from '@/components/SearchBox/SearchBox.vue'
+import LocaleSwitcher from '@/components/LocaleSwitcher/LocaleSwitcher.vue'
 import { useCompiler } from '@/composables/useCompiler'
 import { useTheme } from '@/composables/useTheme'
+import { useI18n } from 'vue-i18n'
 import { useProgress } from '@/composables/useProgress'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { generateShareUrl, getSharedCode, clearCodeFromUrl } from '@/utils/codeShare'
@@ -189,6 +192,7 @@ const consoleOutput = ref('点击「编译」按钮运行 Kotlin 代码...')
 const shareLinkCopied = ref(false)
 
 // 使用 composables
+const { t } = useI18n()
 const { isDark, toggleTheme } = useTheme()
 const { isCompiling, isExecuting, compileResult, executionResult, hasErrors, compile, clearResults, getEditorMarkers } = useCompiler()
 const { addStudyTime } = useProgress()
