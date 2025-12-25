@@ -439,6 +439,14 @@ const goToDemo = (index: number) => {
   exitExerciseMode()
 }
 
+// 通过 Demo ID 跳转到指定 Demo
+const goToDemoById = (demoId: string) => {
+  const index = props.demos.findIndex(d => d.id === demoId)
+  if (index !== -1) {
+    goToDemo(index)
+  }
+}
+
 // 标记完成
 const markCompleted = () => {
   if (currentDemo.value && !props.completedDemos.includes(currentDemo.value.id)) {
@@ -496,7 +504,8 @@ defineExpose({
   getExerciseContext,
   validateExercise,
   setOutputMessage,
-  focusOutputPanel
+  focusOutputPanel,
+  goToDemoById
 })
 </script>
 

@@ -10,10 +10,11 @@
       <span class="shortcut-hint">{{ shortcutText }}</span>
     </button>
 
-    <!-- 搜索弹窗 -->
-    <Transition name="fade">
-      <div v-if="isOpen" class="search-modal" @click.self="closeSearch">
-        <div class="search-dialog">
+    <!-- 搜索弹窗 - 使用 Teleport 传送到 body，确保蒙层完全覆盖 -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="isOpen" class="search-modal" @click.self="closeSearch">
+          <div class="search-dialog">
           <!-- 搜索输入框 -->
           <div class="search-input-wrapper">
             <span class="search-icon">🔍</span>
@@ -72,7 +73,8 @@
           </div>
         </div>
       </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -88,6 +90,8 @@ interface SearchResult {
   title: string
   matchText?: string
   route: string
+  demoId?: string
+  exerciseId?: string
 }
 
 const router = useRouter()
@@ -193,7 +197,8 @@ const performSearch = () => {
           day: day.day,
           title: demo.title,
           matchText: demo.title,
-          route: `/learn/day/${day.day}`
+          route: `/learn/day/${day.day}?demo=${encodeURIComponent(demo.id)}`,
+          demoId: demo.id
         })
       }
     }
@@ -208,7 +213,8 @@ const performSearch = () => {
           day: day.day,
           title: exercise.title,
           matchText: exercise.title,
-          route: `/learn/day/${day.day}`
+          route: `/learn/day/${day.day}?exercise=${encodeURIComponent(exercise.id)}`,
+          exerciseId: exercise.id
         })
       }
     }

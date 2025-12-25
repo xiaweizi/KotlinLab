@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import { useProgress } from '@/composables/useProgress'
@@ -158,6 +158,29 @@ watch(day, (newDay, oldDay) => {
   sessionStartMs = performance.now()
   if (Number.isFinite(newDay)) {
     updateLastAccessed(newDay)
+  }
+}, { immediate: true })
+
+// 监听路由 query 参数，自动跳转到指定 demo 或练习题
+watch(() => route.query, async (query) => {
+  await nextTick()
+  if (!demoRunnerRef.value || !lessonData.value) return
+
+  const demoId = query.demo as string
+  const exerciseId = query.exercise as string
+
+  if (demoId) {
+    // 跳转到指定 Demo
+    demoRunnerRef.value.goToDemoById(demoId)
+  } else if (exerciseId) {
+    // 加载指定练习题
+    const exercise = lessonData.value.exercises.find(e => e.id === exerciseId)
+    if (exercise) {
+      expandedExercise.value = exercise.id
+      if (exercise.template) {
+        demoRunnerRef.value.loadExerciseCode(exercise.template, exercise.title, exercise.id, { solution: exercise.solution })
+      }
+    }
   }
 }, { immediate: true })
 
