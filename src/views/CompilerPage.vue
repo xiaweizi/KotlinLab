@@ -29,7 +29,7 @@
         <div class="section-header">
           <div class="section-title">
             <span class="language-badge kotlin">Kotlin</span>
-            <h2>源代码</h2>
+            <h2>{{ t('editor.sourceCode') }}</h2>
           </div>
           <div class="toolbar">
             <button
@@ -39,7 +39,7 @@
             >
               <span v-if="isCompiling" class="btn-icon spinner">⟳</span>
               <span v-else class="btn-icon">▶</span>
-              {{ isCompiling ? '编译中...' : '编译' }}
+              {{ isCompiling ? t('editor.compiling') : t('editor.compile') }}
             </button>
             <button
               @click="handleRun"
@@ -48,15 +48,15 @@
             >
               <span v-if="isExecuting" class="btn-icon spinner">⟳</span>
               <span v-else class="btn-icon">⚡</span>
-              {{ isExecuting ? '运行中...' : '运行' }}
+              {{ isExecuting ? t('editor.running') : t('editor.run') }}
             </button>
             <button @click="clearAll" class="btn btn-secondary" :disabled="!kotlinCode && !compileResult">
               <span class="btn-icon">🗑</span>
-              清空
+              {{ t('editor.clear') }}
             </button>
             <button @click="shareCode" class="btn btn-share" :disabled="!kotlinCode.trim()" :class="{ copied: shareLinkCopied }">
               <span class="btn-icon">{{ shareLinkCopied ? '✓' : '🔗' }}</span>
-              {{ shareLinkCopied ? '已复制' : '分享' }}
+              {{ shareLinkCopied ? t('editor.copied') : t('editor.share') }}
             </button>
           </div>
         </div>
@@ -74,10 +74,10 @@
         <!-- 编译状态信息 -->
         <div v-if="compileResult" class="compile-status" :class="{ success: compileResult.success, error: hasErrors }">
           <span v-if="compileResult.success" class="status-text success">
-            ✓ 编译成功 ({{ compileResult.executionTime.toFixed(0) }}ms)
+            {{ t('editor.compileSuccessWithTime') }} ({{ compileResult.executionTime.toFixed(0) }}ms)
           </span>
           <span v-else class="status-text error">
-            ✗ 编译失败 ({{ compileResult.executionTime.toFixed(0) }}ms)
+            {{ t('editor.compileFailedWithTime') }} ({{ compileResult.executionTime.toFixed(0) }}ms)
           </span>
         </div>
 
@@ -85,11 +85,11 @@
         <div v-if="hasErrors" class="error-panel">
           <div class="error-panel-header">
             <span class="error-icon">⚠️</span>
-            <span>编译错误</span>
+            <span>{{ t('editor.compileErrorTitle') }}</span>
           </div>
           <div class="error-list">
             <div v-for="(error, index) in compileResult?.errors" :key="index" class="error-item">
-              <span class="error-location">Line {{ error.line }}:{{ error.column }}</span>
+              <span class="error-location">{{ t('editor.lineColumn') }} {{ error.line }}:{{ error.column }}</span>
               <span class="error-message">{{ error.message }}</span>
             </div>
           </div>
@@ -103,13 +103,13 @@
           <div class="section-header compact">
             <div class="section-title">
               <span class="language-badge javascript">JS</span>
-              <h3>JavaScript 输出</h3>
+              <h3>{{ t('editor.jsOutputTitle') }}</h3>
             </div>
             <button
               v-if="jsOutput"
               @click="copyToClipboard(jsOutput)"
               class="icon-btn"
-              title="复制代码"
+              :title="t('editor.copyCodeTitle')"
             >
               📋
             </button>
@@ -130,13 +130,13 @@
           <div class="section-header compact">
           <div class="section-title">
             <span class="language-badge console">⚡</span>
-            <h3>控制台</h3>
+            <h3>{{ t('editor.consoleTitle') }}</h3>
           </div>
           <button
             v-if="executionResult?.output"
             @click="clearConsole"
               class="icon-btn"
-              title="清空控制台"
+              :title="t('editor.clearConsoleTitle')"
             >
               🗑
             </button>
@@ -184,18 +184,18 @@ data class Person(val name: String, val age: Int) {
 }
 `
 
-// 状态
-const kotlinCode = ref(defaultKotlinCode)
-const consoleOutput = ref('点击「编译」按钮运行 Kotlin 代码...')
-
-// 分享相关状态
-const shareLinkCopied = ref(false)
-
 // 使用 composables
 const { t } = useI18n()
 const { isDark, toggleTheme } = useTheme()
 const { isCompiling, isExecuting, compileResult, executionResult, hasErrors, compile, clearResults, getEditorMarkers } = useCompiler()
 const { addStudyTime } = useProgress()
+
+// 状态
+const kotlinCode = ref(defaultKotlinCode)
+const consoleOutput = ref(t('editor.clickToCompile'))
+
+// 分享相关状态
+const shareLinkCopied = ref(false)
 
 let sessionStartMs = performance.now()
 
@@ -204,7 +204,7 @@ useKeyboardShortcuts([
   {
     key: 'Enter',
     ctrl: true,
-    description: '运行代码',
+    description: t('editor.runCode'),
     action: () => {
       if (!kotlinCode.value.trim() || isCompiling.value) return
       handleCompile()
@@ -213,7 +213,7 @@ useKeyboardShortcuts([
   {
     key: 's',
     ctrl: true,
-    description: '复制代码',
+    description: t('editor.copyCode'),
     action: async () => {
       if (kotlinCode.value.trim()) {
         await copyToClipboard(kotlinCode.value)
@@ -222,7 +222,7 @@ useKeyboardShortcuts([
   },
   {
     key: 'Escape',
-    description: '清空输出',
+    description: t('editor.clearConsoleTitle'),
     action: () => {
       clearConsole()
     }
@@ -235,7 +235,7 @@ onMounted(() => {
   const sharedCode = getSharedCode()
   if (sharedCode) {
     kotlinCode.value = sharedCode
-    consoleOutput.value = '已加载分享的代码，点击「编译」运行...'
+    consoleOutput.value = t('editor.loadedSharedCode')
     // 清除 URL 中的 code 参数
     clearCodeFromUrl()
   }
@@ -263,9 +263,9 @@ watch(compileResult, (result) => {
   if (result) {
     if (result.success) {
       // API 直接返回执行后的输出
-      consoleOutput.value = result.jsCode || '执行成功 (无输出)'
+      consoleOutput.value = result.jsCode || t('editor.compileSuccess')
     } else if (result.errors.length > 0) {
-      consoleOutput.value = `编译错误:\n${result.errors.map(e => `Line ${e.line}:${e.column} - ${e.message}`).join('\n')}`
+      consoleOutput.value = `${t('editor.compileErrorTitle')}:\n${result.errors.map(e => `${t('editor.lineColumn')} ${e.line}:${e.column} - ${e.message}`).join('\n')}`
     }
   }
 })
@@ -280,9 +280,9 @@ async function handleCompile() {
 
   if (result.success) {
     // API 直接返回执行后的输出
-    consoleOutput.value = result.jsCode || '执行成功 (无输出)'
+    consoleOutput.value = result.jsCode || t('editor.compileSuccess')
   } else {
-    consoleOutput.value = `编译错误:\n${result.errors.map(e => `Line ${e.line}:${e.column} - ${e.message}`).join('\n')}`
+    consoleOutput.value = `${t('editor.compileErrorTitle')}:\n${result.errors.map(e => `${t('editor.lineColumn')} ${e.line}:${e.column} - ${e.message}`).join('\n')}`
   }
 }
 
@@ -300,14 +300,14 @@ async function handleRun() {
 function clearAll() {
   kotlinCode.value = ''
   clearResults()
-  consoleOutput.value = '点击「编译」按钮运行 Kotlin 代码...'
+  consoleOutput.value = t('editor.clickToCompile')
 }
 
 /**
  * 清空控制台
  */
 function clearConsole() {
-  consoleOutput.value = '控制台已清空'
+  consoleOutput.value = t('editor.consoleCleared')
 }
 
 /**
@@ -316,14 +316,14 @@ function clearConsole() {
 async function copyToClipboard(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    consoleOutput.value = '已复制到剪贴板！'
+    consoleOutput.value = t('editor.copiedToClipboard')
     setTimeout(() => {
-      if (consoleOutput.value === '已复制到剪贴板！') {
-        consoleOutput.value = '点击「编译」按钮运行 Kotlin 代码...'
+      if (consoleOutput.value === t('editor.copiedToClipboard')) {
+        consoleOutput.value = t('editor.clickToCompile')
       }
     }, 2000)
   } catch (err) {
-    consoleOutput.value = '复制失败: ' + (err as Error).message
+    consoleOutput.value = `${t('editor.copyFailed')} ${(err as Error).message}`
   }
 }
 
@@ -332,7 +332,7 @@ async function copyToClipboard(text: string) {
  */
 async function shareCode() {
   if (!kotlinCode.value.trim()) {
-    consoleOutput.value = '没有可分享的代码'
+    consoleOutput.value = t('editor.noCodeToShare')
     return
   }
 
@@ -340,15 +340,15 @@ async function shareCode() {
     const shareUrl = generateShareUrl(kotlinCode.value)
     await navigator.clipboard.writeText(shareUrl)
     shareLinkCopied.value = true
-    consoleOutput.value = '✓ 分享链接已复制到剪贴板！'
+    consoleOutput.value = t('editor.shareLinkCopied')
     setTimeout(() => {
       shareLinkCopied.value = false
-      if (consoleOutput.value === '✓ 分享链接已复制到剪贴板！') {
-        consoleOutput.value = '点击「编译」按钮运行 Kotlin 代码...'
+      if (consoleOutput.value === t('editor.shareLinkCopied')) {
+        consoleOutput.value = t('editor.clickToCompile')
       }
     }, 3000)
   } catch (err) {
-    consoleOutput.value = '分享失败: ' + (err as Error).message
+    consoleOutput.value = `${t('editor.shareFailed')} ${(err as Error).message}`
   }
 }
 </script>

@@ -21,7 +21,7 @@
           @click="previousDemo"
           :disabled="currentDemoIndex === 0"
           class="nav-btn"
-          :title="t('demoRunner.previousDemo')"
+          :title="t('demo.previousDemo')"
         >
           ◀
         </button>
@@ -43,7 +43,7 @@
           @click="nextDemo"
           :disabled="currentDemoIndex === demos.length - 1"
           class="nav-btn"
-          :title="t('demoRunner.nextDemo')"
+          :title="t('demo.nextDemo')"
         >
           ▶
         </button>
@@ -318,7 +318,7 @@ const copySolution = async () => {
 // 执行当前代码并返回结果（供外部判题/验证使用）
 const runCurrentCode = async (): Promise<RunCodeResult> => {
   if (!currentCode.value.trim()) {
-    setOutputMessage('代码为空，无法运行。', { isError: true, badge: null })
+    setOutputMessage(t('demoRunnerExtra.codeIsEmpty'), { isError: true, badge: null })
     return { success: false, output: output.value, error: 'empty-code' }
   }
 
@@ -350,7 +350,7 @@ const runCurrentCode = async (): Promise<RunCodeResult> => {
 // 验证练习题：运行 + 基于 validator 判题，并将结果展示在输出面板
 const validateExercise = async (validator: string, options?: ExerciseValidatorOptions): Promise<{ passed: boolean }> => {
   if (!validator.trim()) {
-    setOutputMessage('该练习未配置 validator（输出正则），无法自动判题。', {
+    setOutputMessage(t('demoRunnerExtra.exerciseNotConfigured'), {
       isError: false,
       badge: { type: 'fail', text: t('validation.notConfigured') }
     })
@@ -359,7 +359,7 @@ const validateExercise = async (validator: string, options?: ExerciseValidatorOp
 
   const regex = parseValidator(validator, options)
   if (!regex) {
-    setOutputMessage(`validator 不是合法的正则表达式：\n${validator}`, {
+    setOutputMessage(`${t('demoRunnerExtra.validatorNotValid')}\n${validator}`, {
       isError: true,
       badge: { type: 'fail', text: t('validation.configError') }
     })
@@ -416,7 +416,7 @@ const copyCode = async () => {
 
 // 清空输出
 const clearOutput = () => {
-  setOutputMessage('输出已清空', { isError: false, badge: null })
+  setOutputMessage(t('demoRunnerExtra.outputCleared'), { isError: false, badge: null })
 }
 
 // 上一个 Demo

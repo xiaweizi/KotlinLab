@@ -79,6 +79,13 @@ export interface LearningProgress {
 }
 
 // ============================================
+// 国际化支持导入
+// ============================================
+// 导入元数据用于国际化
+import { curriculumMetadata as zhMetadata } from './curriculum/locales/zh-CN'
+import { curriculumMetadata as enMetadata } from './curriculum/locales/en'
+
+// ============================================
 // 14天课程数据
 // ============================================
 
@@ -8433,5 +8440,106 @@ export function getByDifficulty(difficulty: 'beginner' | 'intermediate' | 'advan
   return curriculum.filter(d => d.difficulty === difficulty)
 }
 
-// 默认导出
-export default curriculum
+// ============================================
+// 国际化支持
+// ============================================
+
+/**
+ * 获取当前语言设置
+ */
+function getCurrentLocale(): string {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('kotlin-lab-locale')
+    if (saved) return saved
+    if (navigator.language.startsWith('zh')) return 'zh-CN'
+  }
+  return 'en'
+}
+
+/**
+ * 获取指定语言的元数据
+ */
+function getMetadata(locale: string) {
+  return locale === 'en' ? enMetadata : zhMetadata
+}
+
+/**
+ * 将元数据应用到课程数据
+ */
+function applyMetadata(dayData: DayCurriculum, metadata: any): DayCurriculum {
+  if (!metadata) return dayData
+
+  return {
+    ...dayData,
+    title: metadata.title,
+    description: metadata.description,
+    topics: metadata.topics,
+    demos: dayData.demos.map((demo, index) => {
+      const metaDemo = metadata.demos?.[index]
+      if (metaDemo) {
+        return {
+          ...demo,
+          title: metaDemo.title,
+          description: metaDemo.description
+        }
+      }
+      return demo
+    }),
+    exercises: dayData.exercises.map((exercise, index) => {
+      const metaExercise = metadata.exercises?.[index]
+      if (metaExercise) {
+        return {
+          ...exercise,
+          title: metaExercise.title,
+          description: metaExercise.description,
+          hint: metaExercise.hint ?? exercise.hint
+        }
+      }
+      return exercise
+    })
+  }
+}
+
+/**
+ * 获取本地化后的课程数据
+ */
+export function getLocalizedCurriculum(): DayCurriculum[] {
+  const locale = getCurrentLocale()
+  const metadata = getMetadata(locale)
+
+  return curriculum.map(dayData => {
+    const dayMetadata = metadata[dayData.day]
+    if (dayMetadata) {
+      return applyMetadata(dayData, dayMetadata)
+    }
+    return dayData
+  })
+}
+
+/**
+ * 获取指定语言的课程数据
+ */
+export function getCurriculum(locale?: string): DayCurriculum[] {
+  if (!locale) {
+    return getLocalizedCurriculum()
+  }
+  const metadata = getMetadata(locale)
+  return curriculum.map(dayData => {
+    const dayMetadata = metadata[dayData.day]
+    if (dayMetadata) {
+      return applyMetadata(dayData, dayMetadata)
+    }
+    return dayData
+  })
+}
+
+/**
+ * 获取单日课程的本地化数据
+ */
+export function getDayDataLocalized(day: number, locale?: string): DayCurriculum | undefined {
+  const curriculumData = getCurriculum(locale)
+  return curriculumData.find(d => d.day === day)
+}
+
+// 默认导出使用自动检测语言的课程数据
+export default getLocalizedCurriculum()
