@@ -113,10 +113,6 @@ const handleClick = () => {
     }
   }
 
-  &.current {
-    border-color: var(--accent-color);
-    background: rgba(127, 82, 255, 0.05);
-  }
 }
 
 .card-header {
